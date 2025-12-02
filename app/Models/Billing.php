@@ -10,7 +10,7 @@ class Billing extends Model
     use HasUlids;
 
     protected $fillable = [
-        'student_id', 'academic_period_id', 'title', 'description', 
+        'student_id', 'academic_period_id', 'title','category', 'description', 
         'amount', 'due_date', 'status'
     ];
 

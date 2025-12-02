@@ -5,14 +5,12 @@ namespace App\Livewire\Student\Krs;
 use App\Models\AcademicPeriod;
 use App\Models\Classroom;
 use App\Models\StudyPlan;
+use App\Enums\KrsStatus;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
-use App\Enums\KrsStatus;
-use App\Traits\WithToast;
 
 class KrsIndex extends Component
 {
-    use WithToast;
     public $active_period;
     public $student;
 
@@ -20,25 +18,34 @@ class KrsIndex extends Component
     public $available_classes = [];
     public $selected_classes = [];
     public $total_sks = 0;
-    public $max_sks = 24; // Hardcode dulu, nanti dari IPK
+    public $max_sks = 24;
+
+    public $semester_mhs = 1;
 
     public function mount()
     {
-        // 1. Ambil Mahasiswa Login
-        // Kita butuh data student, bukan user.
         $this->student = Auth::user()->student;
-
-        // 2. Cek Semester Aktif & Izin KRS
         $this->active_period = AcademicPeriod::where('is_active', true)->first();
 
-        if ($this->active_period) {
+        if ($this->active_period && $this->student) {
+            $this->calculateStudentSemester();
             $this->loadData();
         }
     }
 
+    private function calculateStudentSemester()
+    {
+        $angkatan = (int) $this->student->entry_year;
+        $tahun_periode = (int) substr($this->active_period->code, 0, 4);
+        $digit_akhir = (int) substr($this->active_period->code, -1);
+        $tipe_semester = ($digit_akhir % 2 != 0) ? 1 : 2;
+
+        $this->semester_mhs = (($tahun_periode - $angkatan) * 2) + $tipe_semester;
+        if ($this->semester_mhs < 1) $this->semester_mhs = 1;
+    }
+
     public function loadData()
     {
-        // Ambil kelas yang sudah diambil (Keranjang Saya)
         $taken = StudyPlan::with(['classroom.course', 'classroom.schedules'])
             ->where('student_id', $this->student->id)
             ->where('academic_period_id', $this->active_period->id)
@@ -46,63 +53,48 @@ class KrsIndex extends Component
 
         $this->selected_classes = $taken;
         $this->total_sks = $taken->sum(fn($krs) => $krs->classroom->course->credit_total);
-
-        // Ambil kelas yang TERSEDIA (Hanya prodi dia, dan belum diambil)
         $takenClassIds = $taken->pluck('classroom_id')->toArray();
+
+        $isPaket = ($this->semester_mhs <= 2);
 
         $this->available_classes = Classroom::with(['course', 'lecturer', 'schedules'])
             ->where('academic_period_id', $this->active_period->id)
             ->where('is_open', true)
-            ->whereHas('course', function ($q) {
-                // Filter Matkul sesuai Prodi Mahasiswa
+            ->whereHas('course', function ($q) use ($isPaket) {
                 $q->where('study_program_id', $this->student->study_program_id);
+                if ($isPaket) {
+                    $q->where('semester_default', $this->semester_mhs)
+                        ->where('is_mandatory', true);
+                }
             })
-            ->whereNotIn('id', $takenClassIds) // Jangan munculkan yg sudah diambil
+            ->whereNotIn('id', $takenClassIds)
             ->get();
     }
 
     public function takeClass($classId)
     {
-        // VALIDASI 1: Apakah masa KRS buka?
         if (!$this->active_period->allow_krs) {
-            $this->alertError('Masa pengisian KRS sudah ditutup.');
+            session()->flash('error', 'Masa pengisian KRS sudah ditutup.');
             return;
         }
 
         $class = Classroom::with(['course', 'schedules'])->find($classId);
 
-        // VALIDASI 2: Cek Kuota
         if ($class->enrolled >= $class->quota) {
-            $this->alertError('Kelas penuh! Cari kelas lain.');
+            session()->flash('error', 'Kelas penuh! Cari kelas lain.');
             return;
         }
 
-        // VALIDASI 3: Cek SKS Limit
         if (($this->total_sks + $class->course->credit_total) > $this->max_sks) {
-            $this->alertError('SKS melebihi batas maksimal (' . $this->max_sks . ').');
+            session()->flash('error', 'SKS melebihi batas maksimal (' . $this->max_sks . ').');
             return;
         }
 
-        // VALIDASI 4: Cek Bentrok Jadwal
-        // Ambil jadwal kelas yg mau diambil
-        foreach ($class->schedules as $newSch) {
-            // Bandingkan dengan semua kelas yg sudah diambil
-            foreach ($this->selected_classes as $takenKrs) {
-                foreach ($takenKrs->classroom->schedules as $takenSch) {
-                    // Jika Harinya Sama
-                    if ($newSch->day == $takenSch->day) {
-                        // Cek Irisan Waktu
-                        // (Start A < End B) AND (End A > Start B)
-                        if ($newSch->start_time < $takenSch->end_time && $newSch->end_time > $takenSch->start_time) {
-                            $this->alertError("BENTROK JADWAL! Matkul ini bentrok dengan " . $takenKrs->classroom->course->name);
-                            return;
-                        }
-                    }
-                }
-            }
+        // Cek Bentrok (Single)
+        if ($this->checkScheduleConflict($class)) {
+            return;
         }
 
-        // LOLOS VALIDASI -> SIMPAN
         StudyPlan::create([
             'student_id' => $this->student->id,
             'classroom_id' => $classId,
@@ -110,54 +102,136 @@ class KrsIndex extends Component
             'status' => KrsStatus::DRAFT,
         ]);
 
-        // Update Counter Kuota (Increment)
         $class->increment('enrolled');
 
-        $this->alertSuccess('Berhasil mengambil mata kuliah.');
-        $this->loadData(); // Refresh tampilan
+        session()->flash('success', 'Berhasil mengambil mata kuliah.');
+        $this->loadData();
+    }
+
+    // UPDATE: Logic Take All dengan Validasi Bentrok
+    public function takeAll()
+    {
+        if (!$this->active_period->allow_krs) {
+            session()->flash('error', 'Masa pengisian KRS sudah ditutup.');
+            return;
+        }
+
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($this->available_classes as $class) {
+
+            // Skip jika sudah diambil
+            $isTaken = collect($this->selected_classes)->contains('classroom_id', $class->id);
+            if ($isTaken) continue;
+
+            // Skip jika kuota penuh
+            if ($class->enrolled >= $class->quota) {
+                $failCount++;
+                continue;
+            }
+
+            // Skip jika melebihi SKS
+            if (($this->total_sks + $class->course->credit_total) > $this->max_sks) {
+                $failCount++;
+                continue;
+            }
+
+            // Skip jika BENTROK (Penting!)
+            // Kita tidak return/stop, tapi continue ke matkul berikutnya
+            if ($this->checkScheduleConflict($class, true)) { // true = silent mode (no flash message per item)
+                $failCount++;
+                continue;
+            }
+
+            // Ambil Kelas
+            StudyPlan::create([
+                'student_id' => $this->student->id,
+                'classroom_id' => $class->id,
+                'academic_period_id' => $this->active_period->id,
+                'status' => KrsStatus::DRAFT,
+            ]);
+
+            $class->increment('enrolled');
+            $successCount++;
+
+            // Update total SKS sementara agar loop berikutnya valid limit SKS-nya
+            $this->total_sks += $class->course->credit_total;
+
+            // Update list kelas yang diambil sementara untuk cek bentrok sesama paket
+            $this->selected_classes->push(new StudyPlan(['classroom' => $class]));
+        }
+
+        if ($successCount > 0) {
+            if ($failCount > 0) {
+                session()->flash('warning', "Berhasil mengambil $successCount matkul. Ada $failCount matkul gagal diambil karena Bentrok/Penuh.");
+            } else {
+                session()->flash('success', "Berhasil mengambil semua ($successCount) mata kuliah paket.");
+            }
+        } else {
+            session()->flash('error', "Gagal mengambil paket. Mungkin jadwal bentrok semua atau SKS penuh.");
+        }
+
+        $this->loadData();
+    }
+
+    // Helper Cek Bentrok (Dipisah agar bisa dipakai ulang)
+    private function checkScheduleConflict($newClass, $silent = false)
+    {
+        foreach ($newClass->schedules as $newSch) {
+            foreach ($this->selected_classes as $takenKrs) {
+                // Safety check jika relasi belum ke-load
+                if (!$takenKrs->classroom || !$takenKrs->classroom->schedules) continue;
+
+                foreach ($takenKrs->classroom->schedules as $takenSch) {
+                    if ($newSch->day == $takenSch->day) {
+                        if ($newSch->start_time < $takenSch->end_time && $newSch->end_time > $takenSch->start_time) {
+                            if (!$silent) {
+                                session()->flash('error', "BENTROK JADWAL! {$newClass->course->name} bentrok dengan {$takenKrs->classroom->course->name} ($newSch->day).");
+                            }
+                            return true; // Ada bentrok
+                        }
+                    }
+                }
+            }
+        }
+        return false; // Aman
     }
 
     public function dropClass($planId)
     {
         if (!$this->active_period->allow_krs) {
-            $this->alertError('Masa KRS tutup. Tidak bisa membatalkan.');
+            session()->flash('error', 'Masa KRS tutup. Tidak bisa membatalkan.');
             return;
         }
 
         $plan = StudyPlan::find($planId);
-        // Cek apakah statusnya DRAFT. Jika bukan DRAFT, tolak penghapusan.
+
         if ($plan->status !== KrsStatus::DRAFT) {
-            $this->alertError('Gagal! Mata kuliah yang sudah diajukan atau disetujui tidak dapat dihapus.');
+            session()->flash('error', 'Gagal! Mata kuliah yang sudah diajukan tidak dapat dihapus.');
             return;
         }
-        // Update Counter Kuota (Decrement)
-        $plan->classroom->decrement('enrolled');
 
+        $plan->classroom->decrement('enrolled');
         $plan->delete();
 
-        $this->alertSuccess('Mata kuliah dibatalkan.');
+        session()->flash('success', 'Mata kuliah dibatalkan.');
         $this->loadData();
     }
 
     public function ajukanKrs()
     {
-        // Fix: Gunakan collect() agar aman jika properti masih dianggap array oleh static analysis
         if (collect($this->selected_classes)->isEmpty()) {
-            $this->alertError('Keranjang KRS masih kosong.');
+            session()->flash('error', 'Keranjang KRS masih kosong.');
             return;
         }
 
-        // Update semua status DRAFT menjadi SUBMITTED (Diajukan)
-        // khusus untuk mahasiswa ini di semester ini
-        // PERBAIKAN: Gunakan 'SUBMITTED' sesuai Enum di Database, bukan 'PENDING'
         StudyPlan::where('student_id', $this->student->id)
             ->where('academic_period_id', $this->active_period->id)
             ->where('status', KrsStatus::DRAFT)
             ->update(['status' => KrsStatus::SUBMITTED]);
 
-        $this->alertSuccess('KRS Berhasil diajukan! Harap tunggu validasi Dosen Wali.');
-
-        // Refresh data agar tombol berubah jadi "Menunggu Persetujuan"
+        session()->flash('success', 'KRS Berhasil diajukan! Harap tunggu validasi Dosen Wali.');
         $this->loadData();
     }
 

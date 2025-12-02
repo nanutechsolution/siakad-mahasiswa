@@ -19,7 +19,7 @@ class BillingIndex extends Component
 
     // Modal Create State
     public $isModalOpen = false;
-    
+
     // Modal Detail State (BARU)
     public $isDetailModalOpen = false;
     public $selectedBillingDetail;
@@ -29,19 +29,20 @@ class BillingIndex extends Component
     public $remaining_balance = 0;
 
     // Form Create Massal
-    public $target_type = 'prodi'; 
+    public $target_type = 'prodi';
     public $prodi_id, $entry_year, $specific_student_nim;
     public $title, $amount, $due_date;
-
+    public $category = 'SPP';
     public function mount()
     {
         $this->active_period = AcademicPeriod::where('is_active', true)->first();
-        $this->due_date = date('Y-m-d', strtotime('+1 month')); 
+        $this->due_date = date('Y-m-d', strtotime('+1 month'));
     }
 
     public function create()
     {
         $this->reset(['prodi_id', 'entry_year', 'specific_student_nim', 'title', 'amount']);
+        $this->category = 'SPP';
         $this->isModalOpen = true;
     }
 
@@ -50,7 +51,7 @@ class BillingIndex extends Component
     {
         // Eager load payments agar bisa lihat riwayat
         $this->selectedBillingDetail = Billing::with(['student.user', 'payments'])->find($id);
-        
+
         // Hitung Total yang sudah dibayar (Hanya yang status VERIFIED)
         $this->total_paid = $this->selectedBillingDetail->payments
             ->where('status', 'VERIFIED')
@@ -66,6 +67,7 @@ class BillingIndex extends Component
     {
         $this->validate([
             'title' => 'required',
+            'category' => 'required',
             'amount' => 'required|numeric|min:0',
             'due_date' => 'required|date',
         ]);
@@ -91,6 +93,7 @@ class BillingIndex extends Component
                 'student_id' => $student->id,
                 'academic_period_id' => $this->active_period->id ?? null,
                 'title' => $this->title,
+                'category' => $this->category, 
                 'description' => 'Dibuat oleh Admin',
                 'amount' => $this->amount,
                 'due_date' => $this->due_date,
@@ -106,7 +109,7 @@ class BillingIndex extends Component
     public function render()
     {
         $billings = Billing::with(['student.user'])
-            ->whereHas('student.user', fn($q) => $q->where('name', 'like', '%'.$this->search.'%'))
+            ->whereHas('student.user', fn($q) => $q->where('name', 'like', '%' . $this->search . '%'))
             ->when($this->filter_status, fn($q) => $q->where('status', $this->filter_status))
             ->latest()
             ->paginate(10);
