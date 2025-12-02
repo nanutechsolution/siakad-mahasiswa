@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CourseSeeder::class,    
             ClassroomSeeder::class, 
+            EdomSeeder::class,
+            BillingSeeder::class,
         ]);
         \App\Models\Student::factory(20)->create();
         \App\Models\Setting::create([

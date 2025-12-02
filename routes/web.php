@@ -51,6 +51,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/krs-validation', \App\Livewire\Admin\Academic\KrsValidate::class)->name('krs-validation');
             Route::get('/krs-generate', \App\Livewire\Admin\Academic\KrsGenerate::class)->name('krs-generate');
         });
+
+        Route::prefix('lpm')->name('lpm.')->group(function () {
+            Route::get('/edom-master', \App\Livewire\Admin\Lpm\EdomIndex::class)->name('edom.master');
+        });
     });
 
     Route::prefix('lecturer')->name('lecturer.')->group(function () {
@@ -70,8 +74,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/khs', \App\Livewire\Student\Khs\KhsIndex::class)->name('khs.index');
         Route::get('/transcript', \App\Livewire\Student\Transcript::class)->name('transcript');
         Route::get('/print/transcript', [PrintController::class, 'printTranscript'])->name('print.transcript');
-
         Route::get('/bills', \App\Livewire\Student\Finance\BillIndex::class)->name('bills');
+        Route::get('/edom', \App\Livewire\Student\Lpm\EdomList::class)->name('edom.list');
+        Route::get('/edom/fill/{classroomId}', \App\Livewire\Student\Lpm\EdomForm::class)->name('edom.fill');
     });
 
     Route::view('profile', 'profile')->name('profile');
