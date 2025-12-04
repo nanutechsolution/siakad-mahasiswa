@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class EdomResponse extends Model
 {
     protected $fillable = [
-        'academic_period_id', // <--- Added this
+        'academic_period_id',
         'student_id',
         'classroom_id',
         'edom_question_id',

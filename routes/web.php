@@ -1,14 +1,15 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Student\PrintController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
-Route::get('/', function () {
-    return redirect()->route('login');
-});
+// Route::get('/', function () {
+//     return redirect()->route('login');
+// });
+
+Route::get('/pmb', \App\Livewire\Pmb\Landing::class)->name('home');
 
 // Rute untuk USER yang sudah LOGIN
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -23,9 +24,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return redirect()->route('student.dashboard');
         } elseif ($user->role === 'lecturer') {
             return redirect()->route('lecturer.dashboard');
+        } elseif ($user->role === 'camaba') {
+            return redirect()->route('pmb.register');
         }
         return abort(403); // Role tidak dikenali
     })->name('dashboard');
+
 
     // 2. Dashboard ADMIN
     Route::prefix('admin')->name('admin.')->group(function () {
@@ -50,10 +54,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/krs-management', \App\Livewire\Admin\Academic\KrsManagement::class)->name('krs-management');
             Route::get('/krs-validation', \App\Livewire\Admin\Academic\KrsValidate::class)->name('krs-validation');
             Route::get('/krs-generate', \App\Livewire\Admin\Academic\KrsGenerate::class)->name('krs-generate');
+            Route::get('/theses', \App\Livewire\Admin\Academic\ThesisManager::class)->name('theses');
         });
 
         Route::prefix('lpm')->name('lpm.')->group(function () {
             Route::get('/edom-master', \App\Livewire\Admin\Lpm\EdomIndex::class)->name('edom.master');
+            Route::get('/edom-result', \App\Livewire\Admin\Lpm\EdomResult::class)->name('edom.result');
+        });
+        Route::prefix('pmb')->name('pmb.')->group(function () {
+            Route::get('/dashboard', \App\Livewire\Admin\Pmb\PmbDashboard::class)->name('dashboard');
+            Route::get('/registrants', \App\Livewire\Admin\Pmb\RegistrantIndex::class)->name('registrants');
+            Route::get('/waves', \App\Livewire\Admin\Pmb\WaveManagement::class)->name('waves');
         });
     });
 
@@ -62,6 +73,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/grading', \App\Livewire\Lecturer\GradingIndex::class)->name('grading.index');
         Route::get('/grading/{classId}', \App\Livewire\Lecturer\Grading::class)->name('grading');
         Route::get('/krs-validation', \App\Livewire\Lecturer\KrsValidation::class)->name('krs.validation');
+        Route::get('/edom-report', \App\Livewire\Lecturer\EdomReport::class)->name('edom.report');
+
+        Route::prefix('thesis')->name('thesis.')->group(function () {
+            Route::get('/', \App\Livewire\Lecturer\Thesis\SupervisionIndex::class)->name('index');
+            Route::get('/{thesisId}', \App\Livewire\Lecturer\Thesis\GuidanceDetail::class)->name('guidance');
+        });
     });
 
     Route::prefix('mhs')->name('student.')->group(function () {
@@ -77,9 +94,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/bills', \App\Livewire\Student\Finance\BillIndex::class)->name('bills');
         Route::get('/edom', \App\Livewire\Student\Lpm\EdomList::class)->name('edom.list');
         Route::get('/edom/fill/{classroomId}', \App\Livewire\Student\Lpm\EdomForm::class)->name('edom.fill');
+        Route::get('/thesis-proposal', \App\Livewire\Student\Thesis\ThesisProposal::class)->name('thesis.proposal');
+        Route::get('/thesis-log', \App\Livewire\Student\Thesis\ThesisLogIndex::class)->name('thesis.log');
     });
 
     Route::view('profile', 'profile')->name('profile');
+
+
+    Route::prefix('pmb')->name('pmb.')->group(function () {
+        Route::get('/register', \App\Livewire\Pmb\RegistrationWizard::class)->name('register');
+        // Nanti buat halaman status di sini
+        Route::get('/status', \App\Livewire\Pmb\StatusPage::class)->name('status');
+        Route::get('/print-card', [\App\Http\Controllers\Pmb\PrintController::class, 'printCard'])->name('print.card');
+    });
 });
 
 require __DIR__ . '/auth.php';

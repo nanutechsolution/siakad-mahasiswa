@@ -18,26 +18,34 @@ class EdomList extends Component
         $krs_list = collect();
 
         if ($student && $active_period) {
-            // Ambil KRS yang sudah disetujui (APPROVED)
+            
+            // Tidak perlu cek tanggal lagi
+            
             $krs_list = StudyPlan::with(['classroom.course', 'classroom.lecturer.user'])
                 ->where('student_id', $student->id)
                 ->where('academic_period_id', $active_period->id)
                 ->where('status', 'APPROVED')
                 ->get()
-                ->map(function($krs) use ($student, $active_period) {
-                    // Cek apakah sudah mengisi EDOM untuk kelas ini?
-                    // Kita cek apakah ada setidaknya 1 record response
+                ->map(function($krs) use ($student) {
+                    
+                    // 1. Cek Status Pengisian
                     $has_filled = EdomResponse::where('student_id', $student->id)
                         ->where('classroom_id', $krs->classroom_id)
                         ->exists();
                     
                     $krs->edom_status = $has_filled ? 'DONE' : 'PENDING';
+
+                    // 2. LOGIC BARU: Cek Ketersediaan Nilai
+                    // Apakah dosen sudah memberi nilai huruf (A, B, C)?
+                    // Jika sudah ada nilai, maka WAJIB ISI. Jika belum, Belum Bisa Isi.
+                    $krs->is_grade_published = !is_null($krs->grade_letter);
+
                     return $krs;
                 });
         }
 
         return view('livewire.student.lpm.edom-list', [
-            'krs_list' => $krs_list
+            'krs_list' => $krs_list,
         ])->layout('layouts.student');
     }
 }

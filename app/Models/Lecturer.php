@@ -31,4 +31,9 @@ class Lecturer extends Model
     {
         return $this->hasMany(Classroom::class);
     }
+
+    public function edom_responses()
+    {
+        return $this->hasManyThrough(EdomResponse::class, Classroom::class);
+    }
 }

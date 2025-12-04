@@ -1,5 +1,6 @@
 <div class="mx-auto max-w-5xl space-y-8">
     <x-slot name="header">Evaluasi Dosen (EDOM)</x-slot>
+
     <!-- Header Info -->
     <div
         class="rounded-[2.5rem] bg-gradient-to-r from-indigo-600 to-brand-blue p-8 text-white shadow-xl relative overflow-hidden">
@@ -7,9 +8,8 @@
         <div class="relative z-10">
             <h2 class="text-2xl font-bold">Evaluasi Kinerja Dosen</h2>
             <p class="text-blue-100 mt-2 max-w-2xl">
-                Partisipasi Anda sangat penting untuk meningkatkan kualitas pengajaran.
-                Identitas Anda <strong>dirahasiakan</strong>. Silakan isi kuesioner untuk setiap mata kuliah di bawah
-                ini sebelum melihat KHS.
+                Untuk dapat melihat <strong>Kartu Hasil Studi (KHS)</strong>, Anda diwajibkan mengisi kuesioner untuk
+                mata kuliah yang nilainya sudah diterbitkan oleh Dosen.
             </p>
         </div>
     </div>
@@ -25,6 +25,8 @@
                         class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold px-3 py-1 rounded-full">
                         {{ $krs->classroom->name }}
                     </span>
+
+                    {{-- STATUS BADGE --}}
                     @if ($krs->edom_status == 'DONE')
                         <span class="flex items-center gap-1 text-green-600 font-bold text-xs">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -33,9 +35,13 @@
                             </svg>
                             Selesai
                         </span>
-                    @else
+                    @elseif($krs->is_grade_published)
                         <span class="flex items-center gap-1 text-red-500 font-bold text-xs animate-pulse">
-                            ! Belum Diisi
+                            ! Butuh Evaluasi
+                        </span>
+                    @else
+                        <span class="text-slate-400 font-bold text-xs">
+                            Menunggu Nilai
                         </span>
                     @endif
                 </div>
@@ -47,14 +53,25 @@
                     {{ $krs->classroom->lecturer->user->name ?? 'Dosen Belum Ditentukan' }}
                 </p>
 
+                {{-- ACTION BUTTONS --}}
                 @if ($krs->edom_status == 'PENDING')
-                    <a href="{{ route('student.edom.fill', $krs->classroom_id) }}"
-                        class="flex items-center justify-center w-full py-2.5 bg-brand-blue text-white rounded-xl font-bold text-sm hover:bg-blue-800 transition-colors shadow-lg shadow-blue-900/20">
-                        Isi Kuesioner
-                    </a>
+                    @if ($krs->is_grade_published)
+                        {{-- CASE 1: Nilai sudah ada, tapi belum isi EDOM (WAJIB ISI) --}}
+                        <a href="{{ route('student.edom.fill', $krs->classroom_id) }}"
+                            class="flex items-center justify-center w-full py-2.5 bg-brand-blue text-white rounded-xl font-bold text-sm hover:bg-blue-800 transition-colors shadow-lg shadow-blue-900/20">
+                            Isi Kuesioner (Buka Nilai)
+                        </a>
+                    @else
+                        {{-- CASE 2: Nilai belum ada (Gak wajib isi sekarang) --}}
+                        <button disabled
+                            class="w-full py-2.5 bg-slate-100 text-slate-400 rounded-xl font-bold text-sm cursor-not-allowed dark:bg-slate-700">
+                            Nilai Belum Keluar
+                        </button>
+                    @endif
                 @else
+                    {{-- CASE 3: Sudah Selesai --}}
                     <button disabled
-                        class="w-full py-2.5 bg-slate-100 text-slate-400 rounded-xl font-bold text-sm cursor-not-allowed dark:bg-slate-700">
+                        class="w-full py-2.5 bg-green-50 text-green-600 border border-green-200 rounded-xl font-bold text-sm cursor-not-allowed dark:bg-green-900/20 dark:border-green-900">
                         Terima Kasih
                     </button>
                 @endif

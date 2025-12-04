@@ -10,11 +10,30 @@ use Carbon\Carbon;
 
 class Dashboard extends Component
 {
+    public $student;
+    public $show_onboarding = false;
+
+    public function mount()
+    {
+
+        $user = Auth::user();
+        $this->student = $user->student;
+
+        // CEK APAKAH MAHASISWA BARU?
+        if ($this->student && $this->student->is_new_student) {
+            $this->show_onboarding = true;
+        }
+    }
+    public function dismissOnboarding()
+    {
+        if ($this->student) {
+            $this->student->update(['is_new_student' => false]);
+            $this->show_onboarding = false;
+        }
+    }
     public function render()
     {
-        $user = Auth::user();
-        $student = $user->student;
-
+        $student = $this->student;
         $active_period = AcademicPeriod::where('is_active', true)->first();
 
         // Init Variabel

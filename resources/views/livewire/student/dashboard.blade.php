@@ -1,5 +1,109 @@
 <div class="mx-auto max-w-7xl space-y-6 md:space-y-8 font-sans">
+    <!-- ONBOARDING MODAL (Hanya Muncul Sekali seumur hidup) -->
+    @if ($show_onboarding)
+        <div class="fixed inset-0 z-[99] flex items-center justify-center p-4" x-data>
+            <!-- Backdrop Blur Gelap -->
+            <div class="absolute inset-0 bg-slate-900/90 backdrop-blur-xl"></div>
 
+            <!-- Confetti Canvas -->
+            <canvas id="confetti-canvas" class="absolute inset-0 pointer-events-none z-0"></canvas>
+
+            <!-- Card Content -->
+            <div
+                class="relative z-10 w-full max-w-lg bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden text-center animate-fade-in-up">
+
+                <!-- Header Image / Decoration -->
+                <div
+                    class="h-40 bg-gradient-to-br from-brand-blue to-indigo-600 relative flex items-center justify-center overflow-hidden">
+                    <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20">
+                    </div>
+                    <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-brand-gold/30 rounded-full blur-3xl"></div>
+
+                    <div
+                        class="relative z-10 bg-white/10 backdrop-blur-md p-4 rounded-full ring-4 ring-white/20 shadow-xl">
+                        <svg class="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="p-8 md:p-10">
+                    <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-2">Selamat Datang! 🎓</h2>
+                    <p class="text-slate-500 dark:text-slate-400 text-lg leading-relaxed">
+                        Selamat! Anda kini resmi menjadi bagian dari keluarga besar <strong>UNMARIS</strong>.
+                    </p>
+
+                    <!-- NIM Reveal -->
+                    <div
+                        class="my-8 bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Nomor Induk Mahasiswa
+                            (NIM) Anda</p>
+                        <p class="text-4xl font-black text-brand-blue dark:text-brand-gold tracking-wider select-all cursor-pointer"
+                            onclick="navigator.clipboard.writeText('{{ $student->nim }}'); alert('NIM disalin!')">
+                            {{ $student->nim }}
+                        </p>
+                        <p class="text-[10px] text-slate-400 mt-2">*Gunakan NIM ini untuk login selanjutnya (Password
+                            tetap sama).</p>
+                    </div>
+
+                    <!-- Next Step -->
+                    <div class="space-y-3">
+                        <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Langkah Selanjutnya:</p>
+                        <button wire:click="dismissOnboarding"
+                            class="w-full py-4 bg-brand-blue text-white rounded-xl font-bold text-lg shadow-xl shadow-blue-900/20 hover:bg-blue-800 hover:scale-[1.02] transition-all">
+                            Mulai Isi KRS Sekarang &rarr;
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Script Confetti (Efek Pesta) -->
+        <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+        <script>
+            // Jalankan efek meledak saat modal muncul
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = {
+                startVelocity: 30,
+                spread: 360,
+                ticks: 60,
+                zIndex: 100
+            };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                var particleCount = 50 * (timeLeft / duration);
+                // since particles fall down, start a bit higher than random
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: {
+                        x: randomInRange(0.1, 0.3),
+                        y: Math.random() - 0.2
+                    }
+                }));
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: {
+                        x: randomInRange(0.7, 0.9),
+                        y: Math.random() - 0.2
+                    }
+                }));
+            }, 250);
+        </script>
+    @endif
     <!-- ERROR STATE -->
     @if (!$student)
         <div class="rounded-3xl border border-red-500/20 bg-red-500/10 p-8 text-center backdrop-blur-md">
@@ -164,7 +268,8 @@
                                                                 stroke-width="2"
                                                                 d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                                             <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                stroke-width="2"
+                                                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                                         </svg>
                                                         {{ $sch->room_name }}
                                                     </span>
