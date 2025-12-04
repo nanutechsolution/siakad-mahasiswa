@@ -9,8 +9,10 @@ use App\Models\Student;
 use App\Models\Billing;
 use App\Models\StudyProgram;
 use App\Enums\RegistrantStatus;
+use App\Mail\PmbStatusUpdate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class RegistrantIndex extends Component
 {
@@ -27,9 +29,9 @@ class RegistrantIndex extends Component
     public function render()
     {
         $registrants = Registrant::with(['user', 'firstChoice', 'secondChoice'])
-            ->when($this->search, function($q) {
-                $q->where('registration_no', 'like', '%'.$this->search.'%')
-                  ->orWhereHas('user', fn($u) => $u->where('name', 'like', '%'.$this->search.'%'));
+            ->when($this->search, function ($q) {
+                $q->where('registration_no', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('user', fn($u) => $u->where('name', 'like', '%' . $this->search . '%'));
             })
             ->when($this->filter_status, fn($q) => $q->where('status', $this->filter_status))
             ->when($this->filter_prodi, fn($q) => $q->where('first_choice_id', $this->filter_prodi))
@@ -61,6 +63,9 @@ class RegistrantIndex extends Component
     public function accept()
     {
         $this->selectedRegistrant->update(['status' => RegistrantStatus::ACCEPTED]);
+        // KIRIM EMAIL
+        Mail::to($this->selectedRegistrant->user->email)
+            ->send(new PmbStatusUpdate($this->selectedRegistrant, 'ACCEPTED'));
         session()->flash('message', 'Selamat! Calon mahasiswa dinyatakan LULUS.');
         $this->isModalOpen = false;
     }
@@ -69,6 +74,8 @@ class RegistrantIndex extends Component
     public function reject()
     {
         $this->selectedRegistrant->update(['status' => RegistrantStatus::REJECTED]);
+        Mail::to($this->selectedRegistrant->user->email)
+            ->send(new PmbStatusUpdate($this->selectedRegistrant, 'REJECTED'));
         session()->flash('error', 'Pendaftaran ditolak.');
         $this->isModalOpen = false;
     }
@@ -88,12 +95,12 @@ class RegistrantIndex extends Component
             // A. Generate NIM: Tahun(24) + KodeProdi + Urut(001)
             $year = date('y'); // 25
             $prodiCode = $camaba->firstChoice->code; // TI
-            
+
             // Hitung urutan
             $count = Student::where('study_program_id', $camaba->first_choice_id)
                 ->where('entry_year', date('Y'))
                 ->count();
-            
+
             $noUrut = str_pad($count + 1, 4, '0', STR_PAD_LEFT); // 0001
             $nimBaru = $year . $prodiCode . $noUrut; // 25TI0001
 
@@ -132,5 +139,50 @@ class RegistrantIndex extends Component
 
         session()->flash('message', 'Berhasil! Akun telah diubah menjadi Mahasiswa Aktif.');
         $this->isModalOpen = false;
+    }
+
+    public function export()
+    {
+        $fileName = 'data_pendaftar_pmb_' . date('Y-m-d_H-i') . '.csv';
+
+        // Ambil data sesuai filter yang sedang aktif
+        $data = Registrant::with(['user', 'firstChoice', 'secondChoice'])
+            ->when($this->filter_status, fn($q) => $q->where('status', $this->filter_status))
+            ->when($this->filter_prodi, fn($q) => $q->where('first_choice_id', $this->filter_prodi))
+            ->latest()
+            ->get();
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($data) {
+            $file = fopen('php://output', 'w');
+
+            // Header Kolom
+            fputcsv($file, ['No Pendaftaran', 'Nama Lengkap', 'NIK', 'Asal Sekolah', 'Pilihan 1', 'Pilihan 2', 'Nilai Rapor', 'Status', 'Tanggal Daftar']);
+
+            foreach ($data as $row) {
+                fputcsv($file, [
+                    $row->registration_no,
+                    $row->user->name,
+                    $row->nik,
+                    $row->school_name,
+                    $row->firstChoice->name ?? '-',
+                    $row->secondChoice->name ?? '-',
+                    $row->average_grade,
+                    $row->status->label(),
+                    $row->created_at->format('d-m-Y H:i'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
