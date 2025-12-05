@@ -56,7 +56,6 @@ class RegistrationWizard extends Component
             // Load data draft
             $this->nik = $registrant->nik;
             $this->school_name = $registrant->school_name;
-            // ... load sisanya ...
         }
     }
 

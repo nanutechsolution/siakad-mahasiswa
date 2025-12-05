@@ -93,17 +93,9 @@ class RegistrantIndex extends Component
             }
 
             // A. Generate NIM: Tahun(24) + KodeProdi + Urut(001)
-            $year = date('y'); // 25
             $prodiCode = $camaba->firstChoice->code; // TI
-
-            // Hitung urutan
-            $count = Student::where('study_program_id', $camaba->first_choice_id)
-                ->where('entry_year', date('Y'))
-                ->count();
-
-            $noUrut = str_pad($count + 1, 4, '0', STR_PAD_LEFT); // 0001
-            $nimBaru = $year . $prodiCode . $noUrut; // 25TI0001
-
+            $nimGenerator = new NimGeneratorService();
+            $nimBaru = $nimGenerator->generate($camaba->first_choice_id, date('Y'));
             // B. Insert ke Tabel Students
             $student = Student::create([
                 'user_id' => $camaba->user_id,

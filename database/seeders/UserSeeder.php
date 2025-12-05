@@ -6,7 +6,6 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Lecturer;
 use App\Models\Student;
-use App\Models\StudyProgram;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
@@ -15,7 +14,7 @@ class UserSeeder extends Seeder
     {
         $password = Hash::make('password'); // Password sakti: "password"
 
-        // 1. SUPER ADMIN
+        // 1. SUPER ADMIN (Tetap Buat Manual)
         User::firstOrCreate(['email' => 'admin@unmaris.ac.id'], [
             'name' => 'Super Administrator',
             'username' => 'admin',
@@ -24,43 +23,32 @@ class UserSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        // 2. DOSEN TETAP (Untuk Simulasi Buka Kelas & Input Nilai)
-        $prodiTI = StudyProgram::where('code', 'TI')->first();
-        
-        $dosenUser = User::firstOrCreate(['email' => 'dosen@unmaris.ac.id'], [
-            'name' => 'Budi Santoso, M.Kom.',
-            'username' => '00112233', // NIDN
-            'role' => 'lecturer',
-            'password' => $password,
-            'email_verified_at' => now(),
-        ]);
+        // 2. SETUP AKUN DOSEN DEMO (AMBIL DARI DATA RIIL)
+        // Kita cari satu dosen yang sudah diimport, misalnya dari Teknik Informatika (ID Prodi sesuaikan jika perlu, atau ambil sembarang)
+        $dosenReal = Lecturer::with('user')->whereHas('user')->first(); 
 
-        Lecturer::firstOrCreate(['user_id' => $dosenUser->id], [
-            'study_program_id' => $prodiTI->id ?? 1,
-            'nidn' => '00112233',
-            'nip_internal' => '19900101',
-            'front_title' => '',
-            'back_title' => 'M.Kom.',
-            'is_active' => true,
-        ]);
+        if ($dosenReal) {
+            $this->command->info("--- INFO LOGIN DOSEN ---");
+            $this->command->info("Nama     : {$dosenReal->user->name}");
+            $this->command->info("Username : {$dosenReal->user->username}");
+            $this->command->info("Password : password");
+            $this->command->info("------------------------");
+        } else {
+            $this->command->warn("Data Dosen Kosong! Pastikan Anda sudah menjalankan 'RealLecturerSeeder' terlebih dahulu.");
+        }
 
-        // 3. MAHASISWA CONTOH (Untuk Simulasi KRS)
-        $mhsUser = User::firstOrCreate(['email' => 'mhs@unmaris.ac.id'], [
-            'name' => 'Frederique Jenkins', // Nama Keren
-            'username' => '24TI0001', // NIM
-            'role' => 'student',
-            'password' => $password,
-            'email_verified_at' => now(),
-        ]);
+        // 3. SETUP AKUN MAHASISWA DEMO (AMBIL DARI DATA RIIL)
+        // Kita cari satu mahasiswa yang sudah diimport
+        $mhsReal = Student::with('user')->whereHas('user')->first();
 
-        Student::firstOrCreate(['user_id' => $mhsUser->id], [
-            'study_program_id' => $prodiTI->id ?? 1,
-            'nim' => '24TI0001',
-            'entry_year' => '2024',
-            'pob' => 'Sumba',
-            'dob' => '2005-08-17',
-            'gender' => 'L',
-            'status' => 'A',
-        ]);
+        if ($mhsReal) {
+            $this->command->info("--- INFO LOGIN MAHASISWA ---");
+            $this->command->info("Nama     : {$mhsReal->user->name}");
+            $this->command->info("Username : {$mhsReal->user->username}");
+            $this->command->info("Password : {$mhsReal->user->username}"); // Password mhs riil diset sama dengan NIM di seeder
+            $this->command->info("----------------------------");
+        } else {
+            $this->command->warn("Data Mahasiswa Kosong! Pastikan Anda sudah menjalankan 'RealStudentSeeder' terlebih dahulu.");
+        }
     }
 }

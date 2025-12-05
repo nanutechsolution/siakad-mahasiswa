@@ -7,4 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Setting extends Model
 {
     protected $guarded = [];
+     protected $casts = [
+        'nim_config' => 'array', // Otomatis convert JSON ke Array PHP
+    ];
 }

@@ -55,6 +55,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/krs-validation', \App\Livewire\Admin\Academic\KrsValidate::class)->name('krs-validation');
             Route::get('/krs-generate', \App\Livewire\Admin\Academic\KrsGenerate::class)->name('krs-generate');
             Route::get('/theses', \App\Livewire\Admin\Academic\ThesisManager::class)->name('theses');
+Route::get('/advisor-plotting', \App\Livewire\Admin\Academic\AdvisorPlotting::class)->name('advisor.plotting');
+
         });
 
         Route::prefix('lpm')->name('lpm.')->group(function () {
@@ -66,6 +68,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/registrants', \App\Livewire\Admin\Pmb\RegistrantIndex::class)->name('registrants');
             Route::get('/waves', \App\Livewire\Admin\Pmb\WaveManagement::class)->name('waves');
         });
+
+        Route::get('/settings/nim', \App\Livewire\Admin\Settings\NimConfig::class)->name('settings.nim');
     });
 
     Route::prefix('lecturer')->name('lecturer.')->group(function () {
@@ -106,6 +110,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Nanti buat halaman status di sini
         Route::get('/status', \App\Livewire\Pmb\StatusPage::class)->name('status');
         Route::get('/print-card', [\App\Http\Controllers\Pmb\PrintController::class, 'printCard'])->name('print.card');
+        Route::get('/print-loa', [\App\Http\Controllers\Pmb\PrintController::class, 'printLoa'])->name('print.loa');
     });
 });
 

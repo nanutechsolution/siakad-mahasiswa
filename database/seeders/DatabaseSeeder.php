@@ -23,8 +23,11 @@ class DatabaseSeeder extends Seeder
             ClassroomSeeder::class, 
             EdomSeeder::class,
             BillingSeeder::class,
+            RealLecturerSeeder::class,
+            RealStudentSeeder::class,
+            UserSeeder::class,
         ]);
-        \App\Models\Student::factory(20)->create();
+        // \App\Models\Student::factory(20)->create();
         \App\Models\Setting::create([
             'campus_name' => 'Universitas Stella Maris Sumba',
             'campus_email' => 'info@unmaris.ac.id',

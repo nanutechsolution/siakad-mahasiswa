@@ -43,4 +43,32 @@ class PrintController extends Controller
 
         return $pdf->stream('Kartu_Peserta_' . $registrant->registration_no . '.pdf');
     }
+
+
+      public function printLoa()
+    {
+        $user = Auth::user();
+        
+        $registrant = Registrant::with(['firstChoice']) // Kita butuh prodi yang diterima (biasanya pilihan 1)
+            ->where('user_id', $user->id)
+            ->first();
+
+        // Validasi: Hanya yang LULUS yang boleh cetak
+        if (!$registrant || $registrant->status !== RegistrantStatus::ACCEPTED) {
+            return redirect()->route('pmb.status')->with('error', 'Dokumen ini hanya untuk peserta yang dinyatakan Lulus.');
+        }
+
+        $setting = Setting::first();
+
+        $pdf = Pdf::loadView('pdf.pmb-loa', [
+            'registrant' => $registrant,
+            'user' => $user,
+            'setting' => $setting,
+            'date' => now()->format('d F Y')
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->stream('Surat_Kelulusan_' . $registrant->registration_no . '.pdf');
+    }
 }

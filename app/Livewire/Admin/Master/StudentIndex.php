@@ -157,7 +157,7 @@ class StudentIndex extends Component
                 session()->flash('message', 'Mahasiswa berhasil didaftarkan.');
             }
         });
-
+        
         $this->isModalOpen = false;
         $this->resetFields();
     }
