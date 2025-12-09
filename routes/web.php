@@ -67,6 +67,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/registrants', \App\Livewire\Admin\Pmb\RegistrantIndex::class)->name('registrants');
             Route::get('/waves', \App\Livewire\Admin\Pmb\WaveManagement::class)->name('waves');
             Route::get('/exams', \App\Livewire\Admin\Pmb\ExamManager::class)->name('exams');
+            Route::get('/exam-recap', \App\Livewire\Admin\Pmb\ExamScoreRecap::class)->name('exam.recap');
         });
 
         Route::get('/settings/nim', \App\Livewire\Admin\Settings\NimConfig::class)->name('settings.nim');
