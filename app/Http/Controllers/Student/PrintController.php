@@ -20,7 +20,7 @@ class PrintController extends Controller
         if (!$student) {
             return redirect()->back()->with('error', 'Data mahasiswa tidak ditemukan.');
         }
-        
+
         // Load relasi Fakultas untuk kop surat
         $student->load('study_program.faculty');
 
@@ -86,8 +86,8 @@ class PrintController extends Controller
             ->get();
 
         $total_sks = $khs_data->sum(fn($item) => $item->classroom->course->credit_total);
-        
-        $total_bobot = $khs_data->sum(function($item) {
+
+        $total_bobot = $khs_data->sum(function ($item) {
             return $item->classroom->course->credit_total * $item->grade_point;
         });
 
@@ -119,27 +119,43 @@ class PrintController extends Controller
         $student = $user->student;
 
         if (!$student) return redirect()->back()->with('error', 'Data mahasiswa tidak ditemukan.');
-        
+
         $student->load('study_program.faculty');
         $setting = Setting::first();
 
         // Ambil Semua Nilai Approved
-        $grades = StudyPlan::with(['classroom.course', 'academic_period'])
+        // $grades = StudyPlan::with(['classroom.course', 'academic_period'])
+        //     ->where('student_id', $student->id)
+        //     ->where('status', 'APPROVED')
+        //     ->get()
+        //     ->sortBy(function ($q) {
+        //         // Urutkan berdasarkan Semester (1, 2, 3...)
+        //         return $q->classroom->course->semester_default;
+        //     });
+
+        $raw_grades = StudyPlan::with(['classroom.course', 'academic_period'])
             ->where('student_id', $student->id)
             ->where('status', 'APPROVED')
-            ->get()
-            ->sortBy(function($q) {
-                // Urutkan berdasarkan Semester (1, 2, 3...)
-                return $q->classroom->course->semester_default; 
+            ->whereNotNull('grade_point')
+            ->get();
+
+        // FILTER: Ambil Nilai Terbaik Saja
+        $clean_grades = $raw_grades->groupBy('classroom.course_id')
+            ->map(function ($attempts) {
+                return $attempts->sortByDesc('grade_point')->first();
+            })
+            ->sortBy(function ($q) {
+                // Urutkan berdasarkan Semester Default Matkul (1, 2, 3...)
+                return $q->classroom->course->semester_default;
             });
 
-        $total_sks = $grades->sum(fn($i) => $i->classroom->course->credit_total);
-        $total_bobot = $grades->sum(fn($i) => $i->classroom->course->credit_total * $i->grade_point);
+        $total_sks = $clean_grades->sum(fn($i) => $i->classroom->course->credit_total);
+        $total_bobot = $clean_grades->sum(fn($i) => $i->classroom->course->credit_total * $i->grade_point);
         $ipk = $total_sks > 0 ? number_format($total_bobot / $total_sks, 2) : 0.00;
 
         $pdf = Pdf::loadView('pdf.transcript', [
             'student' => $student,
-            'data' => $grades,
+            'data' => $clean_grades,
             'total_sks' => $total_sks,
             'total_bobot' => $total_bobot,
             'ipk' => $ipk,
@@ -151,4 +167,37 @@ class PrintController extends Controller
         return $pdf->stream('Transkrip_' . $student->nim . '.pdf');
     }
 
+      public function printActiveStudent()
+    {
+        $user = Auth::user();
+        $student = $user->student;
+
+        if (!$student) return redirect()->back();
+
+        // 1. Validasi: Harus Status Aktif
+        if ($student->status !== 'A') {
+            return redirect()->back()->with('error', 'Anda tidak berstatus Aktif. Tidak dapat mencetak surat.');
+        }
+
+        // 2. Data Pendukung
+        $student->load('study_program.faculty');
+        $setting = Setting::first();
+        $active_period = AcademicPeriod::where('is_active', true)->first();
+        
+        // Nomor Surat Otomatis (Format: NO/AKTIF/TAHUN/NIM) - Bisa disesuaikan
+        $nomor_surat = "109/UNMARIS/BAAK/" . date('Y') . "/" . $student->nim;
+
+        $pdf = Pdf::loadView('pdf.active-letter', [
+            'student' => $student,
+            'user' => $user,
+            'setting' => $setting,
+            'period' => $active_period,
+            'nomor_surat' => $nomor_surat,
+            'date' => now()->format('d F Y')
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->stream('Surat_Aktif_' . $student->nim . '.pdf');
+    }
 }

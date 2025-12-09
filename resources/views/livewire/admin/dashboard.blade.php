@@ -1,127 +1,189 @@
-<div>
-    <x-slot name="header">
-        Dashboard
-    </x-slot>
+<div class="space-y-8 font-sans">
+    <x-slot name="header">Dashboard Eksekutif</x-slot>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- 1. WELCOME BANNER -->
+    <div class="relative overflow-hidden rounded-3xl bg-slate-900 p-8 text-white shadow-xl">
+        <div class="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-brand-blue to-transparent opacity-40"></div>
+        <div class="absolute -right-10 -bottom-20 h-64 w-64 rounded-full bg-brand-gold/20 blur-3xl"></div>
         
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] p-6 border border-slate-100 dark:border-slate-700 relative overflow-hidden group hover:border-indigo-100 dark:hover:border-indigo-900 transition-all duration-300">
-            <div class="absolute right-0 top-0 h-full w-1 bg-indigo-500 rounded-r"></div>
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mahasiswa Aktif</p>
-                    <h3 class="text-3xl font-bold text-slate-800 dark:text-white mt-2">{{ $total_mhs }}</h3>
-                </div>
-                <div class="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                </div>
+        <div class="relative z-10 flex items-center justify-between">
+            <div>
+                <p class="text-blue-200 font-bold tracking-wider text-xs uppercase mb-1">
+                    Semester Aktif: {{ $semester_aktif->name ?? 'Belum Diatur' }}
+                </p>
+                <h2 class="text-3xl font-black">Halo, Administrator! 👋</h2>
+                <p class="text-slate-300 mt-2 max-w-xl">
+                    Berikut adalah ringkasan data akademik dan keuangan Universitas Stella Maris Sumba secara real-time.
+                </p>
             </div>
-            <div class="mt-4 flex items-center text-xs text-slate-500 dark:text-slate-400">
-                <span class="text-green-500 font-bold mr-1">●</span> Data Terupdate
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] p-6 border border-slate-100 dark:border-slate-700 relative overflow-hidden group hover:border-purple-100 dark:hover:border-purple-900 transition-all duration-300">
-            <div class="absolute right-0 top-0 h-full w-1 bg-purple-500 rounded-r"></div>
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dosen Tetap</p>
-                    <h3 class="text-3xl font-bold text-slate-800 dark:text-white mt-2">{{ $total_dosen }}</h3>
-                </div>
-                <div class="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] p-6 border border-slate-100 dark:border-slate-700 relative overflow-hidden group hover:border-orange-100 dark:hover:border-orange-900 transition-all duration-300">
-            <div class="absolute right-0 top-0 h-full w-1 bg-orange-500 rounded-r"></div>
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Program Studi</p>
-                    <h3 class="text-3xl font-bold text-slate-800 dark:text-white mt-2">{{ $total_prodi }}</h3>
-                </div>
-                <div class="p-2 bg-orange-50 dark:bg-orange-900/30 rounded-lg text-orange-600 dark:text-orange-400 group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-slate-800 dark:bg-slate-950 rounded-xl shadow-lg p-6 text-white relative overflow-hidden border border-slate-700 dark:border-slate-800">
-            <div class="absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-            <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Periode Aktif</p>
-            <h3 class="text-xl font-bold mt-2 leading-tight">
-                {{ $semester_aktif->name ?? 'Tidak Ada' }}
-            </h3>
-            <div class="mt-4 inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-300 border border-green-500/30">
-                Kode: {{ $semester_aktif->code ?? '-' }}
+            <!-- Quick Action -->
+            <div class="hidden md:flex gap-3">
+                <a href="{{ route('admin.pmb.registrants') }}" class="px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-sm transition backdrop-blur-md border border-white/10">
+                    Cek PMB Baru
+                </a>
+                <a href="{{ route('admin.finance.billings') }}" class="px-5 py-2.5 bg-brand-gold text-brand-blue rounded-xl font-bold text-sm hover:bg-yellow-400 transition shadow-lg shadow-yellow-500/20">
+                    Kelola Keuangan
+                </a>
             </div>
         </div>
     </div>
 
-    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-        <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-            <h3 class="font-bold text-slate-800 dark:text-white">Aktivitas Sistem Terbaru</h3>
-            <!-- Tombol Lihat Semua (Bisa dibuatkan halaman khusus log nanti) -->
-            <button class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 font-medium">Real-time Log</button>
+    <!-- 2. STATS OVERVIEW -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Mahasiswa -->
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg class="w-24 h-24 text-brand-blue" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Mahasiswa Aktif</p>
+            <h3 class="text-4xl font-black text-slate-800 dark:text-white mt-2">{{ $total_mhs }}</h3>
+            <p class="text-sm text-green-600 font-bold mt-2 flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                Terdaftar
+            </p>
         </div>
-        
-        <div class="p-0">
-            @if($recent_activities->isEmpty())
-                <div class="p-8 text-center text-slate-400">
-                    <svg class="w-12 h-12 mx-auto text-slate-200 dark:text-slate-700 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <p>Belum ada aktivitas tercatat hari ini.</p>
-                </div>
-            @else
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 uppercase text-xs font-bold">
-                        <tr>
-                            <th class="px-6 py-3">User</th>
-                            <th class="px-6 py-3">Aksi</th>
-                            <th class="px-6 py-3">Keterangan</th>
-                            <th class="px-6 py-3 text-right">Waktu</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                        @foreach($recent_activities as $log)
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                            <td class="px-6 py-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center font-bold text-xs text-slate-600 dark:text-slate-300">
-                                        {{ substr($log->user->name ?? 'S', 0, 1) }}
-                                    </div>
-                                    <div>
-                                        <p class="font-bold text-slate-800 dark:text-white">{{ $log->user->name ?? 'System' }}</p>
-                                        <p class="text-[10px] text-slate-500 uppercase">{{ $log->user->role ?? '-' }}</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-3">
-                                @php
-                                    $badgeColor = match($log->action) {
-                                        'CREATE', 'INSERT' => 'bg-green-100 text-green-700',
-                                        'UPDATE', 'EDIT' => 'bg-blue-100 text-blue-700',
-                                        'DELETE' => 'bg-red-100 text-red-700',
-                                        'LOGIN' => 'bg-indigo-100 text-indigo-700',
-                                        'LOGOUT' => 'bg-slate-100 text-slate-700',
-                                        default => 'bg-gray-100 text-gray-700'
-                                    };
-                                @endphp
-                                <span class="px-2 py-1 rounded text-[10px] font-bold uppercase {{ $badgeColor }}">
-                                    {{ $log->action }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-3 text-slate-600 dark:text-slate-300 truncate max-w-xs">
-                                {{ $log->description }}
-                            </td>
-                            <td class="px-6 py-3 text-right text-slate-400 text-xs">
-                                {{ $log->created_at->diffForHumans() }}
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
+
+        <!-- Dosen -->
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg class="w-24 h-24 text-purple-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+            </div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Dosen</p>
+            <h3 class="text-4xl font-black text-slate-800 dark:text-white mt-2">{{ $total_dosen }}</h3>
+            <p class="text-sm text-slate-500 font-medium mt-2">Pengajar Tetap & LB</p>
+        </div>
+
+        <!-- Prodi -->
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg class="w-24 h-24 text-orange-500" fill="currentColor" viewBox="0 0 24 24"><path d="M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zm-4.5-9L2 6v2h19V6l-9.5-5z"/></svg>
+            </div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Program Studi</p>
+            <h3 class="text-4xl font-black text-slate-800 dark:text-white mt-2">{{ $total_prodi }}</h3>
+            <p class="text-sm text-slate-500 font-medium mt-2">Fakultas & Jurusan</p>
         </div>
     </div>
+
+    <!-- 3. CHARTS ROW -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Chart: Mahasiswa Per Prodi -->
+        <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+            <h4 class="font-bold text-lg text-slate-800 dark:text-white mb-6">Sebaran Mahasiswa per Prodi</h4>
+            <div id="prodiChart" class="h-80"></div>
+        </div>
+
+        <!-- Chart: Keuangan -->
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col">
+            <h4 class="font-bold text-lg text-slate-800 dark:text-white mb-2">Status SPP Semester Ini</h4>
+            <p class="text-xs text-slate-500 mb-6">Perbandingan mahasiswa Lunas vs Belum.</p>
+            
+            <div class="flex-1 flex items-center justify-center">
+                <div id="financeChart" class="w-full"></div>
+            </div>
+
+            <!-- Custom Legend -->
+            <div class="mt-4 space-y-2">
+                <div class="flex justify-between text-sm">
+                    <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-green-500"></span> Lunas</span>
+                    <span class="font-bold text-slate-700 dark:text-slate-300">{{ $finance_stats[0] }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-500"></span> Belum Lunas</span>
+                    <span class="font-bold text-slate-700 dark:text-slate-300">{{ $finance_stats[1] }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. AKTIVITAS TERBARU (Jika Ada) -->
+    @if(count($activities) > 0)
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+            <h4 class="font-bold text-slate-800 dark:text-white">Aktivitas Sistem Terbaru</h4>
+        </div>
+        <div class="divide-y divide-slate-100 dark:divide-slate-700">
+            @foreach($activities as $log)
+            <div class="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                <div class="h-10 w-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm dark:bg-indigo-900/30">
+                    {{ substr($log->user->name ?? 'S', 0, 1) }}
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-slate-800 dark:text-white">{{ $log->user->name ?? 'System' }}</p>
+                    <p class="text-xs text-slate-500">{{ $log->description }}</p>
+                </div>
+                <span class="text-xs text-slate-400 font-mono">{{ $log->created_at->diffForHumans() }}</span>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 </div>
+
+<!-- Scripts Chart -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    document.addEventListener('livewire:navigated', () => {
+        
+        // 1. Chart Prodi (Bar)
+        var optionsProdi = {
+            series: [{
+                name: 'Jumlah Mahasiswa',
+                data: @json($chart_prodi_values)
+            }],
+            chart: {
+                type: 'bar',
+                height: 320,
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                toolbar: { show: false }
+            },
+            plotOptions: {
+                bar: { borderRadius: 6, horizontal: true, barHeight: '60%' }
+            },
+            dataLabels: { enabled: false },
+            colors: ['#1a237e'],
+            xaxis: {
+                categories: @json($chart_prodi_labels),
+            },
+            grid: { borderColor: '#f1f5f9' },
+            tooltip: { theme: 'dark' }
+        };
+        var chart1 = new ApexCharts(document.querySelector("#prodiChart"), optionsProdi);
+        chart1.render();
+
+        // 2. Chart Keuangan (Donut)
+        var optionsFinance = {
+            series: @json($finance_stats), // [Paid, Unpaid]
+            chart: {
+                type: 'donut',
+                height: 250,
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+            },
+            labels: ['Lunas', 'Belum Lunas'],
+            colors: ['#10b981', '#ef4444'],
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '70%',
+                        labels: {
+                            show: true,
+                            total: {
+                                show: true,
+                                label: 'Tagihan',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            },
+            dataLabels: { enabled: false },
+            legend: { show: false },
+            stroke: { show: false },
+            tooltip: { theme: 'dark' }
+        };
+        var chart2 = new ApexCharts(document.querySelector("#financeChart"), optionsFinance);
+        chart2.render();
+    });
+</script>

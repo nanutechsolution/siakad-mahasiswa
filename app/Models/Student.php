@@ -17,6 +17,14 @@ class Student extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+     protected $casts = [
+        'dob' => 'date',
+        'father_dob' => 'date',
+        'mother_dob' => 'date',
+        'guardian_dob' => 'date',
+        'is_kps_recipient' => 'boolean',
+    ];
+
 
     public function study_plans()
     {

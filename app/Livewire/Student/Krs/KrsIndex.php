@@ -36,6 +36,13 @@ class KrsIndex extends Component
 
         if ($this->active_period && $this->student) {
             $this->checkRegistrationStatus();
+            if (substr($this->active_period->code, -1) == '3') {
+                $this->max_sks = 9;
+            } else {
+                // Semester Biasa: Bisa dibuat dinamis berdasarkan IPK lalu
+                // Contoh: Jika IPK > 3.00 dapat 24, jika < 2.00 dapat 18
+                $this->max_sks = 24;
+            }
 
             if (!$this->is_locked) {
                 $this->calculateStudentSemester();
@@ -98,7 +105,11 @@ class KrsIndex extends Component
         $takenClassIds = $this->selected_classes->pluck('classroom_id')->toArray();
 
         $isPaket = ($this->semester_mhs <= 2);
-
+        $history_grades = StudyPlan::with('classroom')
+            ->where('student_id', $this->student->id)
+            ->whereNotNull('grade_letter')
+            ->get()
+            ->groupBy('classroom.course_id');
         $this->available_classes = Classroom::with(['course', 'lecturer', 'schedules'])
             ->where('academic_period_id', $this->active_period->id)
             ->where('is_open', true)
@@ -120,7 +131,26 @@ class KrsIndex extends Component
                 }
             })
             ->whereNotIn('id', $takenClassIds)
-            ->get();
+            ->get()
+            ->map(function ($class) use ($history_grades) {
+                // Cek apakah pernah ambil dan tidak lulus
+                $prev = $history_grades[$class->course_id] ?? null;
+
+                $class->is_retake = false;
+                $class->prev_grade = null;
+
+                if ($prev) {
+                    $bestGrade = $prev->sortByDesc('grade_point')->first();
+                    // Asumsi batas lulus adalah C (2.00)
+                    // Jika nilai terbaik < 2.00 atau E, berarti wajib ulang
+                    if ($bestGrade->grade_point < 2.00) {
+                        $class->is_retake = true;
+                        $class->prev_grade = $bestGrade->grade_letter;
+                    }
+                }
+
+                return $class;
+            });
     }
 
     public function loadSelectedOnly()
@@ -139,18 +169,18 @@ class KrsIndex extends Component
         if ($this->is_locked) return;
 
         if (!$this->active_period->allow_krs) {
-         $this->alertError( 'Masa pengisian KRS sudah ditutup.');
+            $this->alertError('Masa pengisian KRS sudah ditutup.');
             return;
         }
 
         $class = Classroom::with(['course', 'schedules'])->find($classId);
 
         if ($class->enrolled >= $class->quota) {
-         $this->alertError( 'Kelas penuh.');
+            $this->alertError('Kelas penuh.');
             return;
         }
         if (($this->total_sks + $class->course->credit_total) > $this->max_sks) {
-         $this->alertError( 'SKS limit.');
+            $this->alertError('SKS limit.');
             return;
         }
         if ($this->checkScheduleConflict($class)) return;
@@ -172,7 +202,7 @@ class KrsIndex extends Component
         if ($this->is_locked) return;
 
         if (!$this->active_period->allow_krs) {
-         $this->alertError( 'Masa pengisian KRS sudah ditutup.');
+            $this->alertError('Masa pengisian KRS sudah ditutup.');
             return;
         }
 
@@ -216,7 +246,7 @@ class KrsIndex extends Component
                 session()->flash('success', "Berhasil mengambil semua ($successCount) mata kuliah paket.");
             }
         } else {
-         $this->alertError( "Gagal mengambil paket. Mungkin jadwal bentrok semua atau SKS penuh.");
+            $this->alertError("Gagal mengambil paket. Mungkin jadwal bentrok semua atau SKS penuh.");
         }
 
         $this->loadData();
@@ -228,11 +258,11 @@ class KrsIndex extends Component
 
         $plan = StudyPlan::find($planId);
         if (!$this->active_period->allow_krs) {
-         $this->alertError( 'Masa KRS tutup.');
+            $this->alertError('Masa KRS tutup.');
             return;
         }
         if ($plan->status !== KrsStatus::DRAFT) {
-         $this->alertError( 'Gagal hapus. Matkul sudah diajukan/disetujui.');
+            $this->alertError('Gagal hapus. Matkul sudah diajukan/disetujui.');
             return;
         }
 
@@ -248,7 +278,7 @@ class KrsIndex extends Component
         if ($this->is_locked) return;
 
         if (collect($this->selected_classes)->isEmpty()) {
-         $this->alertError( 'KRS kosong.');
+            $this->alertError('KRS kosong.');
             return;
         }
 

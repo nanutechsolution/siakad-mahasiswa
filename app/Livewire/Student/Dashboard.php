@@ -36,6 +36,7 @@ class Dashboard extends Component
         $student = $this->student;
         $active_period = AcademicPeriod::where('is_active', true)->first();
 
+
         // Init Variabel
         $total_sks_semester = 0;
         $krs_aktif = collect();
@@ -80,8 +81,24 @@ class Dashboard extends Component
                 ->where('status', 'APPROVED')
                 ->get();
 
-            $total_points = $all_approved_krs->sum(fn($k) => $k->classroom->course->credit_total * $k->grade_point);
-            $total_sks_kumulatif = $all_approved_krs->sum(fn($k) => $k->classroom->course->credit_total);
+            // 2. Hitung Statistik Akademik (IPK & SKS Kumulatif)
+            // Hanya ambil matkul yang SUDAH LULUS/APPROVED (Nilai sudah keluar)
+            $raw_grades = StudyPlan::with(['classroom.course', 'academic_period'])
+                ->where('student_id', $student->id)
+                ->where('status', 'APPROVED')
+                ->whereNotNull('grade_point') // Hanya yang sudah ada nilai
+                ->get();
+            $final_grades = $raw_grades->groupBy('classroom.course_id')->map(function ($attempts) {
+                // Ambil percobaan dengan Bobot (grade_point) tertinggi
+                return $attempts->sortByDesc('grade_point')->first();
+            });
+
+
+            // $total_points = $all_approved_krs->sum(fn($k) => $k->classroom->course->credit_total * $k->grade_point);
+            // $total_sks_kumulatif = $all_approved_krs->sum(fn($k) => $k->classroom->course->credit_total);
+            $total_points = $final_grades->sum(fn($k) => $k->classroom->course->credit_total * $k->grade_point);
+            $total_sks_kumulatif = $final_grades->sum(fn($k) => $k->classroom->course->credit_total);
+
 
             $ipk = $total_sks_kumulatif > 0 ? $total_points / $total_sks_kumulatif : 0;
 

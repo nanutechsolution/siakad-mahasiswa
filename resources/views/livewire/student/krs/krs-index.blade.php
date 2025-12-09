@@ -192,6 +192,19 @@
                                                 Smt {{ $class->course->semester_default }}
                                             </span>
                                         @endif
+
+                                        @if (isset($class->is_retake) && $class->is_retake)
+                                            <span
+                                                class="inline-flex items-center gap-1 rounded-md bg-red-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-700 ring-1 ring-inset ring-red-600/20 animate-pulse">
+                                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                                                    stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                Mengulang ({{ $class->prev_grade }})
+                                            </span>
+                                        @endif
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <h4
@@ -274,7 +287,8 @@
                                             : $firstItem->status)
                                         : 'EMPTY';
                                 @endphp
-                                @if ($statusKrs == 'APPROVED') <span
+                                @if ($statusKrs == 'APPROVED')
+                                    <span
                                         class="text-xs font-bold px-2 py-1 bg-green-100 text-green-700 rounded">Disetujui</span>
                                 @elseif($statusKrs == 'SUBMITTED')
                                     <span

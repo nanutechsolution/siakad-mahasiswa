@@ -55,8 +55,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/krs-validation', \App\Livewire\Admin\Academic\KrsValidate::class)->name('krs-validation');
             Route::get('/krs-generate', \App\Livewire\Admin\Academic\KrsGenerate::class)->name('krs-generate');
             Route::get('/theses', \App\Livewire\Admin\Academic\ThesisManager::class)->name('theses');
-Route::get('/advisor-plotting', \App\Livewire\Admin\Academic\AdvisorPlotting::class)->name('advisor.plotting');
-
+            Route::get('/advisor-plotting', \App\Livewire\Admin\Academic\AdvisorPlotting::class)->name('advisor.plotting');
         });
 
         Route::prefix('lpm')->name('lpm.')->group(function () {
@@ -67,6 +66,7 @@ Route::get('/advisor-plotting', \App\Livewire\Admin\Academic\AdvisorPlotting::cl
             Route::get('/dashboard', \App\Livewire\Admin\Pmb\PmbDashboard::class)->name('dashboard');
             Route::get('/registrants', \App\Livewire\Admin\Pmb\RegistrantIndex::class)->name('registrants');
             Route::get('/waves', \App\Livewire\Admin\Pmb\WaveManagement::class)->name('waves');
+            Route::get('/exams', \App\Livewire\Admin\Pmb\ExamManager::class)->name('exams');
         });
 
         Route::get('/settings/nim', \App\Livewire\Admin\Settings\NimConfig::class)->name('settings.nim');
@@ -100,6 +100,7 @@ Route::get('/advisor-plotting', \App\Livewire\Admin\Academic\AdvisorPlotting::cl
         Route::get('/edom/fill/{classroomId}', \App\Livewire\Student\Lpm\EdomForm::class)->name('edom.fill');
         Route::get('/thesis-proposal', \App\Livewire\Student\Thesis\ThesisProposal::class)->name('thesis.proposal');
         Route::get('/thesis-log', \App\Livewire\Student\Thesis\ThesisLogIndex::class)->name('thesis.log');
+        Route::get('/print/active-letter', [App\Http\Controllers\Student\PrintController::class, 'printActiveStudent'])->name('print.active');
     });
 
     Route::view('profile', 'profile')->name('profile');
@@ -111,6 +112,7 @@ Route::get('/advisor-plotting', \App\Livewire\Admin\Academic\AdvisorPlotting::cl
         Route::get('/status', \App\Livewire\Pmb\StatusPage::class)->name('status');
         Route::get('/print-card', [\App\Http\Controllers\Pmb\PrintController::class, 'printCard'])->name('print.card');
         Route::get('/print-loa', [\App\Http\Controllers\Pmb\PrintController::class, 'printLoa'])->name('print.loa');
+        Route::get('/exam', \App\Livewire\Pmb\CbtExam::class)->name('exam');
     });
 });
 
