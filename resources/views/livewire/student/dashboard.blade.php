@@ -445,6 +445,8 @@
                         </div>
                     @endif
 
+                    
+
                     <div class="relative z-10">
                         <svg class="h-6 w-6 text-white/50 group-hover:text-white group-hover:translate-x-1 transition-all"
                             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -452,6 +454,25 @@
                         </svg>
                     </div>
                 </div>
+
+                <!-- PENGUMUMAN WIDGET -->
+<div class="rounded-[2rem] bg-white dark:bg-slate-800 p-6 shadow-sm border border-slate-100 dark:border-slate-700">
+    <h3 class="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+        Info Kampus
+    </h3>
+
+    <div class="space-y-4">
+        @forelse($announcements as $ann)
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30 border border-slate-100 dark:border-slate-700/50 hover:bg-blue-50 transition cursor-pointer" onclick="alert('{{ $ann->content }}')">
+            <p class="text-xs font-bold text-brand-blue dark:text-blue-300 mb-1">{{ $ann->created_at->format('d M Y') }}</p>
+            <h4 class="text-sm font-bold text-slate-800 dark:text-white line-clamp-2">{{ $ann->title }}</h4>
+        </div>
+        @empty
+        <p class="text-sm text-slate-400 text-center py-4">Tidak ada pengumuman baru.</p>
+        @endforelse
+    </div>
+</div>
 
             </div>
         </div>

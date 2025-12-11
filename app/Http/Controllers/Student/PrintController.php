@@ -200,4 +200,56 @@ class PrintController extends Controller
 
         return $pdf->stream('Surat_Aktif_' . $student->nim . '.pdf');
     }
+
+    public function printExamCard()
+    {
+        $user = Auth::user();
+        $student = $user->student;
+        $active_period = AcademicPeriod::where('is_active', true)->first();
+
+        if (!$student || !$active_period) {
+            return redirect()->back()->with('error', 'Data tidak valid.');
+        }
+
+        // 1. CEK KEUANGAN (GATEKEEPER)
+        // Cari tagihan wajib (SPP) di semester ini yang belum lunas
+        $unpaid_bills = $student->billings()
+            ->where('academic_period_id', $active_period->id)
+            ->where('category', 'SPP') // Hanya cek SPP, tagihan lain opsional
+            ->where('status', '!=', 'PAID')
+            ->exists();
+
+        if ($unpaid_bills) {
+            return redirect()->route('student.bills')
+                ->with('error', 'MAAF! Kartu Ujian terkunci. Harap lunasi tagihan SPP semester ini terlebih dahulu.');
+        }
+
+        // 2. CEK KRS
+        // Ambil matkul yang diambil (Approved)
+        $krs_data = StudyPlan::with(['classroom.course', 'classroom.schedules'])
+            ->where('student_id', $student->id)
+            ->where('academic_period_id', $active_period->id)
+            ->where('status', 'APPROVED')
+            ->get();
+
+        if ($krs_data->isEmpty()) {
+            return redirect()->route('student.krs')
+                ->with('error', 'Anda belum mengisi KRS atau KRS belum disetujui Dosen Wali.');
+        }
+
+        $student->load('study_program.faculty');
+        $setting = Setting::first();
+
+        $pdf = Pdf::loadView('pdf.exam-card', [
+            'student' => $student,
+            'period' => $active_period,
+            'data' => $krs_data,
+            'setting' => $setting,
+            'printed_at' => now()->format('d F Y H:i')
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->stream('Kartu_Ujian_' . $student->nim . '.pdf');
+    }
 }

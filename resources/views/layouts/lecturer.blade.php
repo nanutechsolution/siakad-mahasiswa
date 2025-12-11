@@ -122,6 +122,7 @@
                                 </svg>
                                 <span>Input Nilai</span>
                             </a>
+                          
                         </li>
                         <x-admin-link href="{{ route('lecturer.krs.validation') }}" :active="request()->routeIs('lecturer.krs.validation')"
                             label="Validasi KRS">

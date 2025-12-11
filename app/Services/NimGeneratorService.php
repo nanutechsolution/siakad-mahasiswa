@@ -9,9 +9,7 @@ use App\Models\StudyProgram;
 class NimGeneratorService
 {
     /**
-     * Generate NIM Baru
-     * @param int $prodiId ID Program Studi
-     * @param string $entryYear Tahun Masuk (2025)
+     * Generate NIM Baru (Untuk User Real)
      */
     public function generate($prodiId, $entryYear)
     {
@@ -20,47 +18,62 @@ class NimGeneratorService
 
         $prodi = StudyProgram::find($prodiId);
         
-        // 1. Tentukan Format Tahun
-        // "YY" (25) atau "YYYY" (2025)
-        $yearStr = ($config['year_format'] == 'YYYY') ? $entryYear : substr($entryYear, -2);
+        if (!$prodi) return 'ERR-PRODI';
 
-        // 2. Tentukan Kode Prodi
-        // Bisa pakai ID (1, 2) atau Kode String (TI, SI)
-        $prodiStr = ($config['prodi_source'] == 'CODE') ? $prodi->code : str_pad($prodi->id, 2, '0', STR_PAD_LEFT);
-
-        // 3. Hitung Urutan (Sequence)
-        // Hitung mahasiswa di prodi & angkatan yg sama
-        $lastStudentCount = Student::where('study_program_id', $prodiId)
-            ->where('entry_year', $entryYear)
-            ->count();
-        
-        $nextSequence = $lastStudentCount + 1;
-        $seqStr = str_pad($nextSequence, $config['seq_digit'], '0', STR_PAD_LEFT);
-
-        // 4. Rakit String (Pola: TAHUN + PRODI + URUT)
-        // Anda bisa ubah urutan ini jika config mengizinkan, tapi standar biasanya begini
-        return $yearStr . $prodiStr . $seqStr;
+        return $this->buildNimString($config, $entryYear, $prodi, null);
     }
 
     /**
-     * Generate Preview untuk tampilan Admin
+     * Generate Preview
      */
-    public function preview($config)
+    public function preview($config, $prodi = null)
     {
         $year = date('Y');
-        $yearStr = ($config['year_format'] == 'YYYY') ? $year : substr($year, -2);
-        $prodiStr = ($config['prodi_source'] == 'CODE') ? 'TI' : '01';
-        $seqStr = str_pad('1', $config['seq_digit'], '0', STR_PAD_LEFT);
+        
+        if (!$prodi) {
+            $prodi = new StudyProgram();
+            $prodi->code = 'TI';
+            $prodi->id = 1;
+        }
 
+        return $this->buildNimString($config, $year, $prodi, 1);
+    }
+
+    /**
+     * Core Logic Pembentuk String NIM
+     */
+    private function buildNimString($config, $year, $prodi, $sequence = null)
+    {
+        // 1. Tahun (2 Digit atau 4 Digit)
+        $yearStr = ($config['year_format'] == 'YYYY') ? $year : substr($year, -2);
+
+        // 2. Kode Prodi (CUSTOM MAPPING)
+        // Ambil dari array 'prodi_codes' di config. Key-nya adalah ID Prodi.
+        // Jika tidak ada settingan, fallback ke Kode Huruf default (misal: TI)
+        $customCode = $config['prodi_codes'][$prodi->id] ?? $prodi->code;
+        
+        $prodiStr = $customCode;
+
+        // 3. Nomor Urut
+        if ($sequence === null) {
+            $lastStudentCount = Student::where('study_program_id', $prodi->id)
+                ->where('entry_year', $year)
+                ->count();
+            $sequence = $lastStudentCount + 1;
+        }
+        
+        $seqStr = str_pad($sequence, $config['seq_digit'], '0', STR_PAD_LEFT);
+
+        // FORMAT: TAHUN + KODE_PRODI + URUT
         return $yearStr . $prodiStr . $seqStr;
     }
 
     private function defaults()
     {
         return [
-            'year_format' => 'YY', // YY = 25, YYYY = 2025
-            'prodi_source' => 'CODE', // CODE = TI, ID = 01
-            'seq_digit' => 4, // 0001
+            'year_format' => 'YY',
+            'prodi_codes' => [], // Array kosong default
+            'seq_digit' => 4,
         ];
     }
 }

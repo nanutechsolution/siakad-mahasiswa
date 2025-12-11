@@ -71,6 +71,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
 
         Route::get('/settings/nim', \App\Livewire\Admin\Settings\NimConfig::class)->name('settings.nim');
+        Route::get('/users', \App\Livewire\Admin\System\UserManagement::class)->name('users');
+        Route::get('/announcements', \App\Livewire\Admin\System\AnnouncementManager::class)->name('announcements');
+
     });
 
     Route::prefix('lecturer')->name('lecturer.')->group(function () {
@@ -79,11 +82,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/grading/{classId}', \App\Livewire\Lecturer\Grading::class)->name('grading');
         Route::get('/krs-validation', \App\Livewire\Lecturer\KrsValidation::class)->name('krs.validation');
         Route::get('/edom-report', \App\Livewire\Lecturer\EdomReport::class)->name('edom.report');
+        Route::get('/attendance/{classId}', \App\Livewire\Lecturer\Attendance\MeetingManager::class)->name('attendance');
+        Route::get('/print/attendance/{classId}', [\App\Http\Controllers\Lecturer\PrintController::class, 'printAttendanceRecap'])->name('print.attendance');
 
         Route::prefix('thesis')->name('thesis.')->group(function () {
             Route::get('/', \App\Livewire\Lecturer\Thesis\SupervisionIndex::class)->name('index');
             Route::get('/{thesisId}', \App\Livewire\Lecturer\Thesis\GuidanceDetail::class)->name('guidance');
         });
+
     });
 
     Route::prefix('mhs')->name('student.')->group(function () {
@@ -102,6 +108,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/thesis-proposal', \App\Livewire\Student\Thesis\ThesisProposal::class)->name('thesis.proposal');
         Route::get('/thesis-log', \App\Livewire\Student\Thesis\ThesisLogIndex::class)->name('thesis.log');
         Route::get('/print/active-letter', [App\Http\Controllers\Student\PrintController::class, 'printActiveStudent'])->name('print.active');
+        Route::get('/attendance', \App\Livewire\Student\Attendance\SubmitAttendance::class)->name('attendance');
+        Route::get('/attendance/recap', \App\Livewire\Student\Attendance\AttendanceRecap::class)->name('attendance.recap');
+        Route::get('/print/exam-card', [PrintController::class, 'printExamCard'])->name('print.exam-card');
     });
 
     Route::view('profile', 'profile')->name('profile');

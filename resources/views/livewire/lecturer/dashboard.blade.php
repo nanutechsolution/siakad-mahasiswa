@@ -39,6 +39,15 @@
     @else
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @foreach($classes as $class)
+
+            <div class="flex gap-2 mt-4">
+    {{-- <a href="{{ route('lecturer.grading', $class->id) }}" class="flex-1 ...">Input Nilai</a> --}}
+    
+    <!-- TOMBOL BARU -->
+    <a href="{{ route('lecturer.attendance', $class->id) }}" class="flex-1 text-center bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-indigo-700">
+        Presensi
+    </a>
+</div>
             <div class="group relative bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-indigo-500 transition-all hover:shadow-md">
                 
                 <!-- Label Kelas -->
@@ -56,6 +65,8 @@
                 <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
                     {{ $class->course->credit_total }} SKS • {{ $class->study_plans->count() }} Mahasiswa
                 </p>
+
+                
 
                 <!-- List Jadwal Hari & Jam -->
                 <div class="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-2">

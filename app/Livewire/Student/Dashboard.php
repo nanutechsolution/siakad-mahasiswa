@@ -133,6 +133,12 @@ class Dashboard extends Component
             })->sortBy('start_time');
         }
 
+        $announcements = \App\Models\Announcement::where('is_active', true)
+        ->whereIn('target_role', ['all', 'student'])
+        ->latest()
+        ->take(3)
+        ->get();
+
         return view('livewire.student.dashboard', [
             'student' => $student,
             'active_period' => $active_period,
@@ -145,7 +151,8 @@ class Dashboard extends Component
             'sks_history_values' => $sks_history_values,
             'jadwal_hari_ini' => $jadwal_hari_ini,
             'greeting' => $greeting,
-            'tagihan_belum_bayar' => $tagihan_belum_bayar
+            'tagihan_belum_bayar' => $tagihan_belum_bayar,
+            'announcements' => $announcements // Kirim ke view
         ])->layout('layouts.student');
     }
 

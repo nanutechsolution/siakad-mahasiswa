@@ -1,6 +1,21 @@
 <div>
     <x-slot name="header">Penjadwalan Kelas (Semester Aktif)</x-slot>
 
+    {{-- PREPARE DATA UNTUK SEARCHABLE DROPDOWN (JSON) --}}
+    @php
+        $courseOptions = $courses->map(fn($c) => [
+            'id' => $c->id,
+            'label' => $c->name,
+            'sub' => $c->code . ' • ' . $c->credit_total . ' SKS'
+        ])->values();
+
+        $lecturerOptions = $lecturers->map(fn($l) => [
+            'id' => $l->id,
+            'label' => $l->user->name,
+            'sub' => $l->nidn ? 'NIDN: '.$l->nidn : 'NIP: '.$l->nip_internal
+        ])->values();
+    @endphp
+
     <div class="mb-6 flex justify-between items-center">
         <div class="w-full max-w-sm">
              <input wire:model.live.debounce.300ms="search" type="text" class="block w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white" placeholder="Cari Mata Kuliah...">
@@ -81,7 +96,6 @@
             
             <form wire:submit.prevent="store" class="p-6 space-y-6">
                 
-                <!-- NOTIFIKASI ERROR BENTROK -->
                 @if (session()->has('error'))
                     <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative flex items-start gap-3">
                         <svg class="w-5 h-5 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
@@ -89,15 +103,58 @@
                     </div>
                 @endif
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="col-span-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <!-- SEARCHABLE DROPDOWN: MATA KULIAH -->
+                    <div class="col-span-2" 
+                         x-data="{
+                            open: false,
+                            search: '',
+                            selectedId: @entangle('course_id'),
+                            options: {{ json_encode($courseOptions) }},
+                            get filtered() {
+                                if (this.search === '') return this.options;
+                                return this.options.filter(i => 
+                                    i.label.toLowerCase().includes(this.search.toLowerCase()) || 
+                                    i.sub.toLowerCase().includes(this.search.toLowerCase())
+                                );
+                            },
+                            get display() {
+                                let item = this.options.find(i => i.id == this.selectedId);
+                                return item ? item.sub + ' : ' + item.label : '-- Cari & Pilih Matkul --';
+                            }
+                         }">
                         <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Mata Kuliah</label>
-                        <select wire:model="course_id" class="w-full rounded-lg border-slate-300 dark:bg-slate-700 dark:border-slate-600 dark:text-white">
-                            <option value="">-- Pilih Matkul --</option>
-                            @foreach($courses as $c)
-                                <option value="{{ $c->id }}">{{ $c->code }} - {{ $c->name }} ({{ $c->credit_total }} SKS)</option>
-                            @endforeach
-                        </select>
+                        
+                        <div class="relative">
+                            <!-- Trigger Button -->
+                            <button type="button" @click="open = !open; $nextTick(() => $refs.searchInput.focus())" 
+                                    class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg py-2.5 px-3 text-left shadow-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue flex justify-between items-center">
+                                <span x-text="display" :class="selectedId ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-500'"></span>
+                                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                            </button>
+
+                            <!-- Dropdown List -->
+                            <div x-show="open" @click.outside="open = false" style="display: none;"
+                                 class="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-60 overflow-hidden flex flex-col">
+                                
+                                <div class="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 sticky top-0">
+                                    <input x-ref="searchInput" x-model="search" type="text" placeholder="Ketik Kode atau Nama..." 
+                                           class="w-full text-sm rounded-lg border-slate-200 dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:border-brand-blue focus:ring-brand-blue">
+                                </div>
+
+                                <div class="overflow-y-auto flex-1 p-1 custom-scrollbar">
+                                    <template x-for="option in filtered" :key="option.id">
+                                        <button type="button" @click="selectedId = option.id; open = false; search = ''"
+                                                class="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors group">
+                                            <div class="font-bold text-slate-800 dark:text-white" x-text="option.label"></div>
+                                            <div class="text-xs text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-300" x-text="option.sub"></div>
+                                        </button>
+                                    </template>
+                                    <div x-show="filtered.length === 0" class="p-4 text-center text-xs text-slate-400">Tidak ditemukan</div>
+                                </div>
+                            </div>
+                        </div>
                         @error('course_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     </div>
 
@@ -114,14 +171,54 @@
                         @error('quota') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="col-span-2">
+                    <!-- SEARCHABLE DROPDOWN: DOSEN PENGAMPU -->
+                    <div class="col-span-2" 
+                         x-data="{
+                            open: false,
+                            search: '',
+                            selectedId: @entangle('lecturer_id'),
+                            options: {{ json_encode($lecturerOptions) }},
+                            get filtered() {
+                                if (this.search === '') return this.options;
+                                return this.options.filter(i => 
+                                    i.label.toLowerCase().includes(this.search.toLowerCase()) || 
+                                    i.sub.toLowerCase().includes(this.search.toLowerCase())
+                                );
+                            },
+                            get display() {
+                                let item = this.options.find(i => i.id == this.selectedId);
+                                return item ? item.label : '-- Cari & Pilih Dosen --';
+                            }
+                         }">
                         <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Dosen Pengampu</label>
-                        <select wire:model="lecturer_id" class="w-full rounded-lg border-slate-300 dark:bg-slate-700 dark:border-slate-600 dark:text-white">
-                            <option value="">-- Belum Ditentukan --</option>
-                            @foreach($lecturers as $l)
-                                <option value="{{ $l->id }}">{{ $l->user->name ?? 'Dosen' }} ({{ $l->user->username ?? '-' }})</option>
-                            @endforeach
-                        </select>
+                        
+                        <div class="relative">
+                            <button type="button" @click="open = !open; $nextTick(() => $refs.searchInput.focus())" 
+                                    class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg py-2.5 px-3 text-left shadow-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue flex justify-between items-center">
+                                <span x-text="display" :class="selectedId ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-500'"></span>
+                                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                            </button>
+
+                            <div x-show="open" @click.outside="open = false" style="display: none;"
+                                 class="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-60 overflow-hidden flex flex-col">
+                                
+                                <div class="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 sticky top-0">
+                                    <input x-ref="searchInput" x-model="search" type="text" placeholder="Cari Nama Dosen / NIDN..." 
+                                           class="w-full text-sm rounded-lg border-slate-200 dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:border-brand-blue focus:ring-brand-blue">
+                                </div>
+
+                                <div class="overflow-y-auto flex-1 p-1 custom-scrollbar">
+                                    <template x-for="option in filtered" :key="option.id">
+                                        <button type="button" @click="selectedId = option.id; open = false; search = ''"
+                                                class="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors group">
+                                            <div class="font-bold text-slate-800 dark:text-white" x-text="option.label"></div>
+                                            <div class="text-xs text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-300" x-text="option.sub"></div>
+                                        </button>
+                                    </template>
+                                    <div x-show="filtered.length === 0" class="p-4 text-center text-xs text-slate-400">Tidak ditemukan</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

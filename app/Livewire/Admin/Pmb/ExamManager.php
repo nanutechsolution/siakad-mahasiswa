@@ -14,15 +14,10 @@ class ExamManager extends Component
     public $isModalOpen = false;
     public $isEditMode = false;
 
-    // Form Fields (Pastikan ini ada)
+    // Form Fields
     public $question_id;
     public $question_text;
-    public $options = [
-        'A' => '',
-        'B' => '',
-        'C' => '',
-        'D' => '',
-    ];
+    public $option_a, $option_b, $option_c, $option_d;
     public $correct_answer = 'A';
 
     public function render()
@@ -46,60 +41,66 @@ class ExamManager extends Component
     public function edit($id)
     {
         $q = ExamQuestion::findOrFail($id);
+        
         $this->question_id = $id;
         $this->question_text = $q->question_text;
-
-        // Update cara ambil data ke array
-        $this->options = [
-            'A' => $q->option_a,
-            'B' => $q->option_b,
-            'C' => $q->option_c,
-            'D' => $q->option_d,
-        ];
-
+        
+        $this->option_a = $q->option_a;
+        $this->option_b = $q->option_b;
+        $this->option_c = $q->option_c;
+        $this->option_d = $q->option_d;
+        
         $this->correct_answer = $q->correct_answer;
+        
         $this->isEditMode = true;
         $this->isModalOpen = true;
     }
 
-    public function store()
+    // UPDATE: Tambahkan parameter $closeModal
+    public function store($closeModal = true)
     {
-
         $this->validate([
             'question_text' => 'required|string',
-            'options.A'     => 'required|string', // Validasi array
-            'options.B'     => 'required|string',
-            'options.C'     => 'required|string',
-            'options.D'     => 'required|string',
+            'option_a' => 'required|string',
+            'option_b' => 'required|string',
+            'option_c' => 'required|string',
+            'option_d' => 'required|string',
             'correct_answer' => 'required|in:A,B,C,D',
         ]);
 
         ExamQuestion::updateOrCreate(['id' => $this->question_id], [
             'question_text' => $this->question_text,
-            // Ambil dari array options
-            'option_a' => $this->options['A'],
-            'option_b' => $this->options['B'],
-            'option_c' => $this->options['C'],
-            'option_d' => $this->options['D'],
+            'option_a' => $this->option_a,
+            'option_b' => $this->option_b,
+            'option_c' => $this->option_c,
+            'option_d' => $this->option_d,
             'correct_answer' => $this->correct_answer,
             'points' => 5
         ]);
 
-        session()->flash('message', $this->isEditMode ? 'Soal diperbarui.' : 'Soal baru ditambahkan.');
-        $this->isModalOpen = false;
-        $this->resetForm();
+        session()->flash('message', $this->isEditMode ? 'Soal diperbarui.' : 'Soal ditambahkan.');
+
+        // Jika Edit Mode, paksa tutup (karena aneh kalau edit tapi reset)
+        if ($this->isEditMode || $closeModal) {
+            $this->isModalOpen = false;
+            $this->resetForm();
+        } else {
+            // Jika Mode Tambah Lagi: Reset form tapi biarkan modal terbuka
+            $this->resetForm();
+            // Optional: Kirim event ke JS untuk scroll ke atas modal atau fokus ke input pertama
+            $this->dispatch('question-saved'); 
+        }
     }
 
-    private function resetForm()
-    {
-        $this->reset(['question_id', 'question_text', 'correct_answer']);
-        // Reset array manual
-        $this->options = ['a' => '', 'b' => '', 'c' => '', 'd' => ''];
-        $this->correct_answer = 'A';
-    }
     public function delete($id)
     {
         ExamQuestion::find($id)->delete();
         session()->flash('message', 'Soal dihapus.');
+    }
+
+    private function resetForm()
+    {
+        $this->reset(['question_id', 'question_text', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer']);
+        $this->correct_answer = 'A';
     }
 }

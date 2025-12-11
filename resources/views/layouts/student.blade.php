@@ -224,7 +224,45 @@
                                 <span class="font-bold text-sm tracking-wide">Surat Aktif Kuliah</span>
                             </a>
                         </li>
+                          
+<!-- CETAK KARTU UJIAN -->
+<li>
+    <a href="{{ route('student.print.exam-card') }}" target="_blank"
+       class="group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ease-out 
+              text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-1">
+        <div class="text-slate-500 group-hover:text-brand-gold transition-colors">
+            <!-- Icon ID Card -->
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0c0 .883-.393 1.73-1 2.383M15 6c0 .883.393 1.73 1 2.383" />
+            </svg>
+        </div>
+        <span class="font-bold text-sm tracking-wide">Cetak Kartu Ujian</span>
+    </a>
+</li>
+
+                        <li>
+    <a href="{{ route('student.attendance') }}" wire:navigate
+       class="group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ease-out {{ request()->routeIs('student.attendance') ? 'bg-brand-blue text-white shadow-lg ring-1 ring-white/10 translate-x-1' : 'text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-1' }}">
+        <div class="{{ request()->routeIs('student.attendance') ? 'text-brand-gold' : 'text-slate-500 group-hover:text-brand-gold' }} transition-colors">
+            <!-- Icon QR Code / Scan -->
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+        </div>
+        <span class="font-bold text-sm tracking-wide">Presensi Digital</span>
+    </a>
+</li>
+<li>
+    <a href="{{ route('student.attendance.recap') }}" wire:navigate
+       class="group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ease-out {{ request()->routeIs('student.attendance.recap') ? 'bg-brand-blue text-white shadow-lg ring-1 ring-white/10 translate-x-1' : 'text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-1' }}">
+        <div class="{{ request()->routeIs('student.attendance.recap') ? 'text-brand-gold' : 'text-slate-500 group-hover:text-brand-gold' }} transition-colors">
+            <!-- Icon History -->
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <span class="font-bold text-sm tracking-wide">Riwayat Kehadiran</span>
+    </a>
+</li>
                     </ul>
+
+                    
                 </div>
 
                 <div>
