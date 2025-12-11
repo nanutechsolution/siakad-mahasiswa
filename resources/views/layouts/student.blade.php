@@ -213,7 +213,7 @@
                         </x-admin-link>
 
                           <li>
-                            <a href="{{ route('student.print.active') }}" target="_blank"
+                            <a href="{{ route('student.letters.index') }}"
                                class="group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ease-out 
                                       text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-1">
                                 <div class="text-slate-500 group-hover:text-brand-gold transition-colors">
@@ -221,7 +221,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                 </div>
-                                <span class="font-bold text-sm tracking-wide">Surat Aktif Kuliah</span>
+                                <span class="font-bold text-sm tracking-wide">Layanan Surat Menyurat</span>
                             </a>
                         </li>
                           

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 // });
 
 Route::get('/pmb', \App\Livewire\Pmb\Landing::class)->name('home');
-
+Route::get('/info-pmb', \App\Livewire\Pmb\Info::class)->name('pmb.info');
 // Rute untuk USER yang sudah LOGIN
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -35,6 +35,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', \App\Livewire\Admin\Dashboard::class)->name('dashboard');
         Route::get('/settings', \App\Livewire\Admin\Settings::class)->name('settings');
+        
         Route::prefix('finance')->name('finance.')->group(function () {
             Route::get('/billings', \App\Livewire\Admin\Finance\BillingIndex::class)->name('billings');
             Route::get('/payments', \App\Livewire\Admin\Finance\PaymentVerification::class)->name('payments');
@@ -56,6 +57,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/krs-generate', \App\Livewire\Admin\Academic\KrsGenerate::class)->name('krs-generate');
             Route::get('/theses', \App\Livewire\Admin\Academic\ThesisManager::class)->name('theses');
             Route::get('/advisor-plotting', \App\Livewire\Admin\Academic\AdvisorPlotting::class)->name('advisor.plotting');
+            Route::get('/import-schedule', \App\Livewire\Admin\Academic\ImportSchedule::class)->name('import.schedule');
         });
 
         Route::prefix('lpm')->name('lpm.')->group(function () {
@@ -73,6 +75,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/settings/nim', \App\Livewire\Admin\Settings\NimConfig::class)->name('settings.nim');
         Route::get('/users', \App\Livewire\Admin\System\UserManagement::class)->name('users');
         Route::get('/announcements', \App\Livewire\Admin\System\AnnouncementManager::class)->name('announcements');
+        Route::get('/letters', \App\Livewire\Admin\System\LetterManager::class)->name('admin.letters');
 
     });
 
@@ -111,6 +114,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/attendance', \App\Livewire\Student\Attendance\SubmitAttendance::class)->name('attendance');
         Route::get('/attendance/recap', \App\Livewire\Student\Attendance\AttendanceRecap::class)->name('attendance.recap');
         Route::get('/print/exam-card', [PrintController::class, 'printExamCard'])->name('print.exam-card');
+        Route::get('/letters', \App\Livewire\Student\Letter\RequestIndex::class)->name('letters.index');
+         Route::get('/print/letter/{id}', [PrintController::class, 'printLetter'])->name('print.letter');
+   
     });
 
     Route::view('profile', 'profile')->name('profile');

@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\AcademicPeriod;
 use App\Models\StudyPlan;
-use App\Models\Setting; // <--- Import Model Setting
+use App\Models\Setting; 
+use App\Models\LetterRequest; 
 
 class PrintController extends Controller
 {
@@ -251,5 +252,53 @@ class PrintController extends Controller
         $pdf->setPaper('A4', 'portrait');
 
         return $pdf->stream('Kartu_Ujian_' . $student->nim . '.pdf');
+    }
+
+     public function printLetter($id)
+    {
+        $user = Auth::user();
+        
+        // Cari request surat milik mahasiswa ini (atau admin jika admin mau cetak, perlu logic tambahan jika admin)
+        // Disini kita asumsi mahasiswa yang cetak sendiri
+        $request = LetterRequest::with(['student.user', 'student.study_program.faculty'])
+            ->where('id', $id)
+            ->first();
+            
+        // Jika tidak ketemu via student_id, cek apakah user adalah admin (opsional, untuk admin preview)
+        if (!$request && $user->role === 'admin') {
+             $request = LetterRequest::with(['student.user', 'student.study_program.faculty'])->find($id);
+        } else if (!$request && $user->role !== 'admin') {
+             // Cek validitas kepemilikan jika bukan admin
+             $request = LetterRequest::where('id', $id)->where('student_id', $user->student->id)->first();
+        }
+
+        if (!$request) {
+            return redirect()->back()->with('error', 'Surat tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+
+        if ($request->status !== 'COMPLETED') {
+            return redirect()->back()->with('error', 'Surat belum selesai diproses oleh Admin.');
+        }
+
+        $student = $request->student;
+        $setting = Setting::first();
+        $active_period = AcademicPeriod::where('is_active', true)->first();
+
+        // Pilih View berdasarkan tipe surat (bisa dibuat beda-beda)
+        // Untuk sekarang kita pakai 1 template umum
+        $view = 'pdf.general-letter';
+
+        $pdf = Pdf::loadView($view, [
+            'request' => $request,
+            'student' => $student,
+            'user' => $student->user, // User dari student, bukan yang login (jika admin yg cetak)
+            'setting' => $setting,
+            'period' => $active_period,
+            'date' => now()->format('d F Y')
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->stream('Surat_' . str_replace(' ', '_', $request->type) . '_' . $student->nim . '.pdf');
     }
 }
