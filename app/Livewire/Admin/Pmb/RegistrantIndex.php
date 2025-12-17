@@ -10,8 +10,8 @@ use App\Models\Billing;
 use App\Models\StudyProgram;
 use App\Enums\RegistrantStatus;
 use App\Mail\PmbStatusUpdate;
+use App\Services\NimGeneratorService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
 class RegistrantIndex extends Component
@@ -116,14 +116,14 @@ class RegistrantIndex extends Component
             ]);
 
             // D. Buat Tagihan Uang Pangkal (Opsional)
-            Billing::create([
-                'student_id' => $student->id,
-                'title' => 'Uang Pangkal / Pembangunan',
-                'category' => 'GEDUNG',
-                'amount' => 5000000, // Rp 5 Juta
-                'status' => 'UNPAID',
-                'due_date' => now()->addMonth()
-            ]);
+            // Billing::create([
+            //     'student_id' => $student->id,
+            //     'title' => 'Uang Pangkal / Pembangunan',
+            //     'category' => 'GEDUNG',
+            //     'amount' => 5000000, // Rp 5 Juta
+            //     'status' => 'UNPAID',
+            //     'due_date' => now()->addMonth()
+            // ]);
 
             // E. Hapus/Arsipkan Data Registrant (Opsional, atau biarkan status ACCEPTED)
             // Kita biarkan status ACCEPTED sebagai histori

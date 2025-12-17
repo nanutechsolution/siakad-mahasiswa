@@ -2,36 +2,42 @@
 
 namespace Database\Seeders;
 
-use App\Models\StudyProgram;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class StudyProgramSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Daftar Prodi disesuaikan dengan Data CSV (Laporan Penugasan Dosen)
+        // DATA PRODI RESMI UNMARIS (SESUAI DIKTI)
         $prodis = [
-            // DATA REAL DARI CSV
+            // Fakultas Teknik
             ['code' => 'TI', 'name' => 'Teknik Informatika', 'degree' => 'S1'],
-            ['code' => 'MI', 'name' => 'Manajemen Informatika', 'degree' => 'D3'],
             ['code' => 'TL', 'name' => 'Teknik Lingkungan', 'degree' => 'S1'],
-
-            // PRODI TAMBAHAN (Opsional/Dummy - bisa dihapus jika tidak perlu)
-            ['code' => 'SI', 'name' => 'Sistem Informasi', 'degree' => 'S1'],
-            ['code' => 'AG', 'name' => 'Agroteknologi', 'degree' => 'S1'],
-            ['code' => 'MN', 'name' => 'Manajemen', 'degree' => 'S1'],
-            ['code' => 'HK', 'name' => 'Hukum', 'degree' => 'S1'],
+            
+            // Fakultas Ekonomi & Bisnis
+            ['code' => 'MI', 'name' => 'Manajemen Informatika', 'degree' => 'D3'],
+            ['code' => 'BD', 'name' => 'Bisnis Digital', 'degree' => 'S1'],
+            
+            // Fakultas Kesehatan
+            ['code' => 'ARS', 'name' => 'Administrasi Rumah Sakit', 'degree' => 'S1'],
+            ['code' => 'K3', 'name' => 'Keselamatan dan Kesehatan Kerja', 'degree' => 'S1'],
+            
+            // Fakultas Keguruan
+            ['code' => 'PTI', 'name' => 'Pendidikan Teknologi Informasi', 'degree' => 'S1'],
         ];
 
         foreach ($prodis as $prodi) {
-            // Gunakan firstOrCreate agar aman dijalankan berkali-kali (mencegah duplikat)
-            StudyProgram::firstOrCreate(
-                ['code' => $prodi['code']], 
-                $prodi
+            // Gunakan updateOrInsert agar tidak duplikat jika dijalankan berkali-kali
+            DB::table('study_programs')->updateOrInsert(
+                ['name' => $prodi['name'], 'degree' => $prodi['degree']], // Kunci pencarian
+                [
+                    'code' => $prodi['code'],
+                    'is_package' => 0,
+                    'total_credits' => $prodi['degree'] == 'D3' ? 110 : 144, // SKS Default
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
             );
         }
     }
