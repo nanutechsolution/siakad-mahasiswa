@@ -13,6 +13,16 @@ class Lecturer extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+     protected $fillable = [
+        'user_id',
+        'study_program_id',
+        'nidn',
+        'nip_internal',
+        'front_title',
+        'back_title',
+        'phone',
+        'is_active',
+    ];
 
     public function user()
     {

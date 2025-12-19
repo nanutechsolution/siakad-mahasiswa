@@ -21,19 +21,28 @@ class PaymentVerification extends Component
     public $rejection_note;
 
     public function render()
-    {
-        $payments = Payment::with(['billing.student.user'])
-            ->where('status', $this->filter_status)
-            ->whereHas('billing.student.user', function($q) {
+{
+    $payments = Payment::with([
+            'billing.student.user',
+            'billing.registrant.user'
+        ])
+        ->where('status', $this->filter_status)
+        ->where(function ($q) {
+            $q->whereHas('billing.student.user', function ($q) {
                 $q->where('name', 'like', '%'.$this->search.'%');
             })
-            ->orderBy('created_at', 'asc') // Yang lama di atas (FIFO)
-            ->paginate(10);
+            ->orWhereHas('billing.registrant.user', function ($q) {
+                $q->where('name', 'like', '%'.$this->search.'%');
+            });
+        })
+        ->orderBy('created_at', 'asc')
+        ->paginate(10);
 
-        return view('livewire.admin.finance.payment-verification', [
-            'payments' => $payments
-        ])->layout('layouts.admin');
-    }
+    return view('livewire.admin.finance.payment-verification', [
+        'payments' => $payments
+    ])->layout('layouts.admin');
+}
+
 
     public function showDetail($id)
     {

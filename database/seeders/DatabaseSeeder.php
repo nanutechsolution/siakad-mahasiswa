@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
             StudyProgramSeeder::class,
             AcademicPeriodSeeder::class,
         ]);
-        $this->call(UserSeeder::class);
         $this->call([
             CourseSeeder::class,    
             ClassroomSeeder::class, 
@@ -26,6 +25,8 @@ class DatabaseSeeder extends Seeder
             RealLecturerSeeder::class,
             RealStudentSeeder::class,
             UserSeeder::class,
+            FeeTypeSeeder::class,
+            SamplePassedRegistrantSeeder::class,
         ]);
         // \App\Models\Student::factory(20)->create();
         \App\Models\Setting::create([

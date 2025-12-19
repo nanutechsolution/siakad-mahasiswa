@@ -17,7 +17,24 @@ class Registrant extends Model
         'status' => RegistrantStatus::class, // Casting Enum
     ];
 
-    public function user() { return $this->belongsTo(User::class); }
+    public function billings()
+    {
+        return $this->morphMany(Billing::class, 'billable');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
     public function firstChoice() { return $this->belongsTo(StudyProgram::class, 'first_choice_id'); }
     public function secondChoice() { return $this->belongsTo(StudyProgram::class, 'second_choice_id'); }
+    /**
+     * Relasi ke Tagihan Pembayaran
+     * Satu pendaftar memiliki satu tagihan daftar ulang.
+     */
+    public function billing()
+    {
+        return $this->hasOne(Billing::class);
+    }
+
 }

@@ -6,6 +6,7 @@ use App\Models\Lecturer;
 use App\Models\User;
 use App\Models\Student;
 use App\Models\StudyProgram;
+use App\Models\Billing; // Import Model Billing
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Hash;
@@ -20,17 +21,16 @@ class StudentIndex extends Component
     public $isModalOpen = false;
     public $isEditMode = false;
 
-    // Form Properties (LENGKAP)
+    // Form Properties
     public $student_id, $user_id;
-    public $name, $email, $password; // Data User
-    public $nim, $prodi_id, $entry_year, $status; // Data Akademik
-    public $pob, $dob, $gender, $phone, $address; // Biodata
+    public $name, $email, $password;
+    public $nim, $prodi_id, $entry_year, $status;
+    public $pob, $dob, $gender, $phone, $address;
     public $academic_advisor_id;
-
 
     public function render()
     {
-       $students = Student::with(['user', 'study_program', 'academic_advisor.user']) // Load advisor
+        $students = Student::with(['user', 'study_program', 'academic_advisor.user'])
             ->whereHas('user', fn($q) => $q->where('name', 'like', '%'.$this->search.'%'))
             ->orWhere('nim', 'like', '%'.$this->search.'%')
             ->latest()
@@ -47,8 +47,8 @@ class StudentIndex extends Component
     {
         $this->resetFields();
         $this->isEditMode = false;
-        $this->entry_year = date('Y'); // Default tahun ini
-        $this->status = 'A'; // Default Aktif
+        $this->entry_year = date('Y');
+        $this->status = 'A';
         $this->isModalOpen = true;
     }
 
@@ -74,6 +74,7 @@ class StudentIndex extends Component
         $this->gender = $student->gender;
         $this->phone = $student->phone;
         $this->address = $student->address;
+        $this->academic_advisor_id = $student->academic_advisor_id;
 
         $this->isEditMode = true;
         $this->isModalOpen = true;
@@ -88,10 +89,9 @@ class StudentIndex extends Component
             'prodi_id' => 'required',
             'entry_year' => 'required|numeric|digits:4',
             'gender' => 'required|in:L,P',
-            'status' => 'required|in:A,C,D,L,N', // Aktif, Cuti, DO, Lulus, Non-aktif
+            'status' => 'required|in:A,C,D,L,N',
         ];
 
-        // Validasi password hanya jika create atau jika diisi saat edit
         if (!$this->isEditMode) {
             $rules['password'] = 'required|min:6';
         } else {
@@ -100,8 +100,25 @@ class StudentIndex extends Component
 
         $this->validate($rules);
 
-        DB::transaction(function () {
+        // --- VALIDASI PINTAR: CEK TAGIHAN SEBELUM LULUS ---
+        if ($this->isEditMode && $this->status == 'L') {
+            $currentStudent = Student::find($this->student_id);
+            
+            // Cek hanya jika status sebelumnya BUKAN Lulus (sedang proses meluluskan)
+            if ($currentStudent->status !== 'L') {
+                $hasDebt = Billing::where('student_id', $this->student_id)
+                    ->whereIn('status', ['UNPAID', 'PARTIAL'])
+                    ->exists();
+                
+                if ($hasDebt) {
+                    $this->addError('status', 'GAGAL: Mahasiswa ini masih memiliki tagihan yang belum lunas. Mohon selesaikan administrasi keuangan sebelum mengubah status menjadi Lulus.');
+                    return; // Stop proses
+                }
+            }
+        }
+        // ----------------------------------------------------
 
+        DB::transaction(function () {
             if ($this->isEditMode) {
                 // UPDATE
                 $user = User::find($this->user_id);
@@ -128,7 +145,7 @@ class StudentIndex extends Component
                     'academic_advisor_id' => $this->academic_advisor_id,
                 ]);
 
-                session()->flash('message', 'Data Mahasiswa diperbarui.');
+                session()->flash('message', 'Data Mahasiswa berhasil diperbarui.');
             } else {
                 // CREATE
                 $user = User::create([
@@ -154,7 +171,7 @@ class StudentIndex extends Component
                     'academic_advisor_id' => $this->academic_advisor_id,
                 ]);
 
-                session()->flash('message', 'Mahasiswa berhasil didaftarkan.');
+                session()->flash('message', 'Mahasiswa baru berhasil didaftarkan.');
             }
         });
         
@@ -164,6 +181,13 @@ class StudentIndex extends Component
 
     public function delete($id)
     {
+        // Validasi Hapus: Cek Tagihan juga
+        $hasDebt = Billing::where('student_id', $id)->exists();
+        if ($hasDebt) {
+            session()->flash('error', 'Gagal menghapus! Mahasiswa memiliki riwayat tagihan keuangan.');
+            return;
+        }
+
         $s = Student::find($id);
         if ($s->user) $s->user->delete();
         $s->delete();
@@ -173,21 +197,10 @@ class StudentIndex extends Component
     private function resetFields()
     {
         $this->reset([
-            'student_id',
-            'user_id',
-            'name',
-            'email',
-            'password',
-            'nim',
-            'prodi_id',
-            'entry_year',
-            'status',
-            'pob',
-            'dob',
-            'gender',
-            'phone',
-            'address',
-            'academic_advisor_id'
+            'student_id', 'user_id', 'name', 'email', 'password', 'nim',
+            'prodi_id', 'entry_year', 'status', 'pob', 'dob',
+            'gender', 'phone', 'address', 'academic_advisor_id'
         ]);
+        $this->resetErrorBag();
     }
 }

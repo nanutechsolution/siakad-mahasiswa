@@ -6,142 +6,135 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Registrant;
-use App\Models\StudyProgram; // Asumsi di SIAKAD ada model ini
+use App\Models\Billing;
+use App\Models\StudyProgram;
+use App\Models\TuitionRate;
+use App\Models\FeeType;
+use App\Enums\RegistrantStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 
 class PmbSyncController extends Controller
 {
-    /**
-     * Handle incoming data from PMB Application
-     */
     public function store(Request $request)
     {
-
-        // ====================================================
-        // 🔒 SECURITY LAYER (VIA ENV)
-        // ====================================================
-        
-        // Ambil kunci rahasia dari file .env SIAKAD
-        $validSecret = env('PMB_API_SECRET'); 
-
-        // Validasi jika ENV belum diset di server
-        if (!$validSecret) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Server Error: Konfigurasi PMB_API_SECRET belum diset di .env SIAKAD.'
-            ], 500);
+        // 1. Security check
+        if ($request->input('secret_key') !== env('PMB_API_SECRET')) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
         }
 
-        // Cek apakah kunci yang dikirim cocok
-        if ($request->input('secret_key') !== $validSecret) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'UNAUTHORIZED: Kunci rahasia tidak cocok.'
-            ], 401);
-        }
-        // ====================================================
-        // 1. Validasi Input dari PMB
-        // Kita longgarkan sedikit validasinya karena asumsinya data dari PMB sudah valid
-        $validator = Validator::make($request->all(), [
+        $input = $request->all();
+
+        // 2. Mapping key lokal ke english
+        if (!isset($input['mother_name']) && isset($input['nama_ibu'])) $input['mother_name'] = $input['nama_ibu'];
+        if (!isset($input['school_name']) && isset($input['asal_sekolah'])) $input['school_name'] = $input['asal_sekolah'];
+        if (!isset($input['entry_year']) && isset($input['tahun_masuk'])) $input['entry_year'] = $input['tahun_masuk'];
+
+        // 3. Validasi
+        $validator = Validator::make($input, [
+            'registration_no' => 'required',
+            'nik' => 'required|numeric',
             'name' => 'required|string',
-            'email' => 'required|email', // Cek unique dilakukan manual nanti
-            'nomor_hp' => 'required|string', // Tetap divalidasi meski tidak masuk tabel users (bisa masuk JSON documents jika perlu)
-            'nik' => 'required|string',
-            'nisn' => 'nullable|string',
-            'asal_sekolah' => 'required|string',
-            'tahun_lulus' => 'required|integer',
-            'nama_ayah' => 'nullable|string',
-            'nama_ibu' => 'nullable|string',
-            'pilihan_prodi_1' => 'required|string', // Menerima NAMA prodi, bukan ID
-            'pilihan_prodi_2' => 'nullable|string',
-            'jalur_masuk' => 'required|string',
+            'email' => 'required|email',
+            'prodi_code' => 'required|exists:study_programs,code',
+            'entry_year' => 'required|digits:4',
+            'mother_name' => 'required|string',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Validasi gagal',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
         }
 
         DB::beginTransaction();
+
         try {
-            // 2. Cek atau Buat User di SIAKAD
-            // Cek apakah email sudah ada di SIAKAD
-            $user = User::where('email', $request->email)->first();
+            $prodi = StudyProgram::where('code', $input['prodi_code'])->firstOrFail();
 
-            if (!$user) {
-                // Generate Password Default (Misal: Tanggal Lahir atau NIK)
-                $defaultPassword = $request->nik;
+            // Hitung nominal SPP
+            // --- LOGIC TARIF SPP (BEST PRACTICE) ---
+            $sppType = FeeType::where('code', 'SPP')->first();
+            $nominalSpp = 0;
 
-                // Membuat User baru sesuai struktur tabel 'users' SIAKAD
-                // Pastikan Model User di SIAKAD menggunakan Trait HasUlids untuk generate ID char(26)
-                $user = User::create([
-                    'name' => $request->name,
-                    'username' => $request->nik, // Menggunakan NIK sebagai username (Wajib Unique)
-                    'email' => $request->email,
+            if ($sppType) {
+                $rate = TuitionRate::where('study_program_id', $prodi->id)
+                    ->where('entry_year', $input['entry_year'])
+                    ->where('fee_type_id', $sppType->id)
+                    ->first();
+
+                if ($rate) {
+                    $nominalSpp = $rate->amount;
+                }
+            }
+            // Jika belum ada tarif, kirim response error
+            if ($nominalSpp <= 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "Tarif SPP untuk Prodi {$prodi->name} tahun {$input['entry_year']} belum di-set."
+                ], 422);
+            }
+            // 4. Buat User Camaba
+            $defaultPassword = 'pmb' . $input['entry_year'];
+
+            $user = User::updateOrCreate(
+                ['email' => $input['email']],
+                [
+                    'name' => $input['name'],
+                    'username' => 'camaba_' . rand(1000, 9999),
                     'password' => Hash::make($defaultPassword),
-                    'role' => 'student', // Default sesuai schema
-                    'is_active' => 1,    // Default sesuai schema
-                ]);
+                    'role' => 'camaba',
+                    'email_verified_at' => now(),
+                ]
+            );
+
+            // 5. Buat Registrant
+            $registrant = Registrant::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'registration_no' => $input['registration_no'],
+                    'period_year' => $input['entry_year'],
+                    'track' => $input['jalur_masuk'] ?? 'JALUR_PMB_ONLINE',
+                    'first_choice_id' => $prodi->id,
+                    'nik' => $input['nik'],
+                    'school_name' => $input['school_name'] ?? '-',
+                    'mother_name' => $input['mother_name'],
+                    'parent_phone' => $input['nomor_hp_ortu'] ?? null,
+                    'status' => RegistrantStatus::ACCEPTED,
+                ]
+            );
+
+            // 6. Buat Tagihan SPP (Billing)
+            if ($sppType) {
+                Billing::firstOrCreate(
+                    [
+                        'registrant_id' => $registrant->id,
+                        'fee_type_id' => $sppType->id,
+                    ],
+                    [
+                        'title' => 'Biaya Daftar Ulang & SPP Semester 1',
+                        'category' => 'SPP',
+                        'description' => 'Tagihan otomatis import PMB. Silakan lunasi/cicil untuk mendapatkan NIM.',
+                        'amount' => $nominalSpp,
+                        'status' => 'UNPAID',
+                        'due_date' => now()->addDays(30),
+                    ]
+                );
             }
-
-            // 3. Mapping Nama Prodi ke ID Prodi (SIAKAD)
-            // PMB kirim string "Teknik Informatika", SIAKAD cari ID-nya di tabel study_programs
-            $prodi1 = StudyProgram::where('name', 'LIKE', '%' . $request->pilihan_prodi_1 . '%')->first();
-            $prodi2 = $request->pilihan_prodi_2
-                ? StudyProgram::where('name', 'LIKE', '%' . $request->pilihan_prodi_2 . '%')->first()
-                : null;
-
-            if (!$prodi1) {
-                throw new \Exception("Program Studi 1 tidak ditemukan di Database SIAKAD: " . $request->pilihan_prodi_1);
-            }
-
-            // 4. Generate Nomor Pendaftaran Unik (Logic sederhana)
-            $regNo = 'REG-' . date('Y') . '-' . strtoupper(Str::random(5));
-
-            // 5. Simpan ke Tabel REGISTRANTS
-            $registrant = Registrant::create([
-                'user_id' => $user->id, // Foreign Key (char 26)
-                'registration_no' => $regNo,
-                'period_year' => date('Y'),
-                'track' => strtoupper($request->jalur_masuk), // REGULER, PRESTASI, dll
-                'first_choice_id' => $prodi1->id,
-                'second_choice_id' => $prodi2 ? $prodi2->id : null,
-                'nik' => $request->nik,
-                'nisn' => $request->nisn,
-                'school_name' => $request->asal_sekolah,
-                'school_major' => 'IPA/IPS', // Default atau minta dari PMB
-                'average_grade' => 0, // Default 0
-                'father_name' => $request->nama_ayah,
-                'mother_name' => $request->nama_ibu,
-                'parent_phone' => null, // Bisa diambil dari request jika ada input khusus ortu
-                'documents' => [], // Kosongkan atau kirim JSON link file
-                'status' => 'ACCEPTED', // Status awal masuk SIAKAD
-            ]);
 
             DB::commit();
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Data berhasil disinkronisasi ke SIAKAD',
-                'data' => [
-                    'nim_sementara' => $regNo,
-                    'user_id' => $user->id,
-                    'registrant_id' => $registrant->id
+                'message' => 'Camaba & tagihan SPP berhasil dibuat.',
+                'credentials' => [
+                    'email' => $user->email,
+                    'password' => $defaultPassword,
+                    'login_url' => url('/login')
                 ]
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal menyimpan data: ' . $e->getMessage(),
-                'line' => $e->getLine()
-            ], 500);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 }

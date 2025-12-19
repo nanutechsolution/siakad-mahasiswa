@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Pmb;
 
+use App\Enums\RegistrantStatus;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

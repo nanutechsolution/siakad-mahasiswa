@@ -6,28 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('course_prerequisites', function (Blueprint $table) {
-            // Matkul Utama (Contoh: Web 2)
-            $table->foreignId('course_id')->constrained()->cascadeOnDelete();
-
-            // Matkul Syaratnya (Contoh: Web 1)
-            $table->foreignId('prerequisite_course_id')->constrained('courses')->cascadeOnDelete();
-
-            // Syarat Nilai Minimal (Opsional, misal harus minimal C)
-            $table->char('min_grade', 2)->default('D');
-
-            $table->primary(['course_id', 'prerequisite_course_id']); // Gabungan PK
+            $table->id();
+            // Matkul yang sedang diambil
+            $table->foreignId('course_id')->constrained('courses')->cascadeOnDelete();
+            
+            // Matkul yang menjadi syarat
+            $table->foreignId('prerequisite_id')->constrained('courses')->cascadeOnDelete();
+            
+            // Nilai minimal untuk dianggap memenuhi syarat (default D)
+            $table->string('min_grade', 2)->default('D'); 
+            
+            $table->timestamps();
+            $table->unique(['course_id', 'prerequisite_id']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('course_prerequisites');

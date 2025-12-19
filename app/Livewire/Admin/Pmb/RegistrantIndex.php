@@ -9,172 +9,145 @@ use App\Models\Student;
 use App\Models\Billing;
 use App\Models\StudyProgram;
 use App\Enums\RegistrantStatus;
-use App\Mail\PmbStatusUpdate;
-use App\Services\NimGeneratorService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
+use App\Services\NimGeneratorService;
 
 class RegistrantIndex extends Component
 {
     use WithPagination;
 
+    // Filter & Search
     public $search = '';
-    public $filter_status = '';
     public $filter_prodi = '';
+    
+    // Filter Pintar (Stage)
+    public $filter_stage = '';
 
-    // Modal Detail
+    // Modal & Data Selection
     public $isModalOpen = false;
     public $selectedRegistrant;
+    public $selectedBilling;
+
+    // Statistik Keuangan
+    public $total_paid = 0;
+    public $remaining_balance = 0;
+    public $payment_progress = 0;
 
     public function render()
     {
-        $registrants = Registrant::with(['user', 'firstChoice', 'secondChoice'])
+        // PERBAIKAN: Tambahkan 'billing.payments' agar bisa cek status per transaksi di tabel
+        $registrants = Registrant::with(['user', 'firstChoice', 'billing.payments']) 
+            ->where('status', RegistrantStatus::ACCEPTED)
+            
             ->when($this->search, function ($q) {
                 $q->where('registration_no', 'like', '%' . $this->search . '%')
                     ->orWhereHas('user', fn($u) => $u->where('name', 'like', '%' . $this->search . '%'));
             })
-            ->when($this->filter_status, fn($q) => $q->where('status', $this->filter_status))
             ->when($this->filter_prodi, fn($q) => $q->where('first_choice_id', $this->filter_prodi))
+            ->when($this->filter_stage, function($q) {
+                if ($this->filter_stage == 'active') {
+                    $q->whereHas('user', fn($u) => $u->where('role', 'student'));
+                } 
+                elseif ($this->filter_stage == 'ready') {
+                    $q->whereHas('billing', fn($b) => $b->whereIn('status', ['PAID', 'PARTIAL']))
+                      ->whereHas('user', fn($u) => $u->where('role', '!=', 'student'));
+                } 
+                elseif ($this->filter_stage == 'unpaid') {
+                    $q->where(function($sub) {
+                        $sub->whereDoesntHave('billing')
+                            ->orWhereHas('billing', fn($b) => $b->whereNotIn('status', ['PAID', 'PARTIAL']));
+                    })->whereHas('user', fn($u) => $u->where('role', '!=', 'student'));
+                }
+            })
             ->latest()
             ->paginate(10);
 
         return view('livewire.admin.pmb.registrant-index', [
             'registrants' => $registrants,
             'prodis' => StudyProgram::all(),
-            'statuses' => RegistrantStatus::cases()
         ])->layout('layouts.admin');
     }
 
+    /**
+     * Tampilkan Detail Camaba & Cari Tagihan secara cerdas
+     */
     public function showDetail($id)
     {
-        $this->selectedRegistrant = Registrant::with('user')->find($id);
+        $this->selectedRegistrant = Registrant::with(['user', 'firstChoice'])->find($id);
+
+        $billing = Billing::with('payments')
+            ->where('registrant_id', $id)
+            ->orWhere(function ($query) use ($id) {
+                $reg = Registrant::find($id);
+                $query->whereHas('student', function ($q) use ($reg) {
+                    $q->where('user_id', $reg->user_id);
+                });
+            })
+            ->first();
+
+        $this->selectedBilling = $billing;
+
+        if ($billing) {
+            $this->total_paid = $billing->payments->where('status', 'VERIFIED')->sum('amount_paid');
+            $this->remaining_balance = max(0, $billing->amount - $this->total_paid);
+            $this->payment_progress = $billing->amount > 0 ? round(($this->total_paid / $billing->amount) * 100) : 0;
+        } else {
+            $this->total_paid = 0;
+            $this->remaining_balance = 0;
+            $this->payment_progress = 0;
+        }
+
         $this->isModalOpen = true;
     }
 
-    // 1. Verifikasi Berkas (Langkah Awal)
-    public function verify()
-    {
-        $this->selectedRegistrant->update(['status' => RegistrantStatus::VERIFIED]);
-        session()->flash('message', 'Berkas pendaftar telah diverifikasi. Siap untuk seleksi.');
-        $this->isModalOpen = false;
-    }
-
-    // 2. Lulus Seleksi (Langkah Kedua)
-    public function accept()
-    {
-        $this->selectedRegistrant->update(['status' => RegistrantStatus::ACCEPTED]);
-        // KIRIM EMAIL
-        Mail::to($this->selectedRegistrant->user->email)
-            ->send(new PmbStatusUpdate($this->selectedRegistrant, 'ACCEPTED'));
-        session()->flash('message', 'Selamat! Calon mahasiswa dinyatakan LULUS.');
-        $this->isModalOpen = false;
-    }
-
-    // 3. Tolak (Jika Gagal)
-    public function reject()
-    {
-        $this->selectedRegistrant->update(['status' => RegistrantStatus::REJECTED]);
-        Mail::to($this->selectedRegistrant->user->email)
-            ->send(new PmbStatusUpdate($this->selectedRegistrant, 'REJECTED'));
-        session()->flash('error', 'Pendaftaran ditolak.');
-        $this->isModalOpen = false;
-    }
-
-    // 4. MAGIC BUTTON: Daftar Ulang & Generate NIM
     public function promoteToStudent($registrantId)
     {
-        DB::transaction(function () use ($registrantId) {
-            $camaba = Registrant::with('user', 'firstChoice')->find($registrantId);
+        $camaba = Registrant::find($registrantId);
+        
+        $existingStudent = Student::where('user_id', $camaba->user_id)->first();
+        if ($existingStudent) {
+            session()->flash('error', 'Mahasiswa ini sudah aktif dengan NIM: ' . $existingStudent->nim);
+            return;
+        }
 
-            // Cek apakah sudah jadi mahasiswa (biar gak dobel)
-            if (Student::where('user_id', $camaba->user_id)->exists()) {
-                session()->flash('error', 'User ini sudah terdaftar sebagai mahasiswa.');
-                return;
-            }
+        $billing = Billing::where('registrant_id', $registrantId)->first();
 
-            // A. Generate NIM: Tahun(24) + KodeProdi + Urut(001)
-            $prodiCode = $camaba->firstChoice->code; // TI
-            $nimGenerator = new NimGeneratorService();
-            $nimBaru = $nimGenerator->generate($camaba->first_choice_id, date('Y'));
-            // B. Insert ke Tabel Students
+        if (!$billing || !in_array($billing->status, ['PAID', 'PARTIAL'])) {
+            session()->flash('error', 'Gagal! Camaba ini belum melakukan pembayaran yang valid.');
+            return;
+        }
+
+        DB::transaction(function () use ($camaba, $billing) {
+            $nimService = new NimGeneratorService();
+            $newNim = $nimService->generate($camaba->first_choice_id, date('Y'));
+
             $student = Student::create([
                 'user_id' => $camaba->user_id,
                 'study_program_id' => $camaba->first_choice_id,
-                'nim' => $nimBaru,
+                'nim' => $newNim,
                 'entry_year' => date('Y'),
-                'pob' => 'Indonesia', // Default, nanti diedit mhs
-                'dob' => now(), // Default
-                'gender' => 'L', // Default (Harusnya ada field gender di form PMB)
-                'phone' => $camaba->user->email,
-                'status' => 'A', // Aktif
+                'status' => 'A',
             ]);
 
-            // C. Update Akun User (Ubah Role & Username)
             $camaba->user->update([
                 'role' => 'student',
-                'username' => $nimBaru
+                'username' => $newNim
             ]);
 
-            // D. Buat Tagihan Uang Pangkal (Opsional)
-            // Billing::create([
-            //     'student_id' => $student->id,
-            //     'title' => 'Uang Pangkal / Pembangunan',
-            //     'category' => 'GEDUNG',
-            //     'amount' => 5000000, // Rp 5 Juta
-            //     'status' => 'UNPAID',
-            //     'due_date' => now()->addMonth()
-            // ]);
-
-            // E. Hapus/Arsipkan Data Registrant (Opsional, atau biarkan status ACCEPTED)
-            // Kita biarkan status ACCEPTED sebagai histori
+            $billing->update([
+                'student_id' => $student->id,
+                'registrant_id' => null
+            ]);
         });
 
-        session()->flash('message', 'Berhasil! Akun telah diubah menjadi Mahasiswa Aktif.');
-        $this->isModalOpen = false;
+        session()->flash('message', 'Aktivasi Berhasil! Mahasiswa resmi terdaftar.');
+        $this->showDetail($registrantId);
     }
 
-    public function export()
+    public function reject()
     {
-        $fileName = 'data_pendaftar_pmb_' . date('Y-m-d_H-i') . '.csv';
-
-        // Ambil data sesuai filter yang sedang aktif
-        $data = Registrant::with(['user', 'firstChoice', 'secondChoice'])
-            ->when($this->filter_status, fn($q) => $q->where('status', $this->filter_status))
-            ->when($this->filter_prodi, fn($q) => $q->where('first_choice_id', $this->filter_prodi))
-            ->latest()
-            ->get();
-
-        $headers = [
-            "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=$fileName",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
-        ];
-
-        $callback = function () use ($data) {
-            $file = fopen('php://output', 'w');
-
-            // Header Kolom
-            fputcsv($file, ['No Pendaftaran', 'Nama Lengkap', 'NIK', 'Asal Sekolah', 'Pilihan 1', 'Pilihan 2', 'Nilai Rapor', 'Status', 'Tanggal Daftar']);
-
-            foreach ($data as $row) {
-                fputcsv($file, [
-                    $row->registration_no,
-                    $row->user->name,
-                    $row->nik,
-                    $row->school_name,
-                    $row->firstChoice->name ?? '-',
-                    $row->secondChoice->name ?? '-',
-                    $row->average_grade,
-                    $row->status->label(),
-                    $row->created_at->format('d-m-Y H:i'),
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        $this->selectedRegistrant->update(['status' => RegistrantStatus::REJECTED]);
+        session()->flash('message', 'Kelulusan calon mahasiswa dibatalkan.');
+        $this->isModalOpen = false;
     }
 }

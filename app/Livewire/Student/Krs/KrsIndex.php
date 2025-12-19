@@ -174,6 +174,25 @@ class KrsIndex extends Component
         }
 
         $class = Classroom::with(['course', 'schedules'])->find($classId);
+        $prerequisites = $class->course->prerequisites;
+
+        if ($prerequisites->count() > 0) {
+            foreach ($prerequisites as $pre) {
+                // Cari di riwayat nilai mahasiswa (StudyPlan yang status APPROVED dan Nilai bukan E)
+                $isPassed = StudyPlan::where('student_id', $this->student->id)
+                    ->whereHas('classroom', function ($q) use ($pre) {
+                        $q->where('course_id', $pre->id);
+                    })
+                    ->where('status', 'APPROVED')
+                    ->whereNotIn('grade_letter', ['E', 'T', '']) // 'T' biasanya 'Tunda'
+                    ->exists();
+
+                if (!$isPassed) {
+                    $this->alertError("GAGAL! Anda belum lulus matkul prasyarat: {$pre->code} - {$pre->name}");
+                    return;
+                }
+            }
+        }
 
         if ($class->enrolled >= $class->quota) {
             $this->alertError('Kelas penuh.');

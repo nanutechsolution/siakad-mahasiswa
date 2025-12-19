@@ -17,7 +17,7 @@ class NimGeneratorService
         $config = $setting->nim_config ?? $this->defaults();
 
         $prodi = StudyProgram::find($prodiId);
-        
+
         if (!$prodi) return 'ERR-PRODI';
 
         return $this->buildNimString($config, $entryYear, $prodi, null);
@@ -29,7 +29,7 @@ class NimGeneratorService
     public function preview($config, $prodi = null)
     {
         $year = date('Y');
-        
+
         if (!$prodi) {
             $prodi = new StudyProgram();
             $prodi->code = 'TI';
@@ -51,7 +51,7 @@ class NimGeneratorService
         // Ambil dari array 'prodi_codes' di config. Key-nya adalah ID Prodi.
         // Jika tidak ada settingan, fallback ke Kode Huruf default (misal: TI)
         $customCode = $config['prodi_codes'][$prodi->id] ?? $prodi->code;
-        
+
         $prodiStr = $customCode;
 
         // 3. Nomor Urut
@@ -61,7 +61,7 @@ class NimGeneratorService
                 ->count();
             $sequence = $lastStudentCount + 1;
         }
-        
+
         $seqStr = str_pad($sequence, $config['seq_digit'], '0', STR_PAD_LEFT);
 
         // FORMAT: TAHUN + KODE_PRODI + URUT

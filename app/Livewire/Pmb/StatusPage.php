@@ -6,27 +6,27 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Registrant;
 use App\Enums\RegistrantStatus;
+use App\Models\Billing;
 
 class StatusPage extends Component
 {
     public $registrant;
+    public $billing;
 
     public function mount()
     {
-        // Ambil data pendaftaran user yang sedang login
-        $this->registrant = Registrant::with(['firstChoice', 'secondChoice'])
+        $this->registrant = Registrant::with('firstChoice')
             ->where('user_id', Auth::id())
             ->first();
 
-        // Jika belum daftar sama sekali, lempar ke formulir
         if (!$this->registrant) {
             return redirect()->route('pmb.register');
         }
-        
-        // Jika status masih DRAFT, lempar kembali ke wizard untuk diselesaikan
-        if ($this->registrant->status === RegistrantStatus::DRAFT) {
-            return redirect()->route('pmb.register');
-        }
+
+        // Ambil billing aktif (SPP / daftar ulang)
+        $this->billing = Billing::where('registrant_id', $this->registrant->id)
+            ->whereIn('status', ['UNPAID', 'CICIL'])
+            ->first();
     }
 
     public function render()

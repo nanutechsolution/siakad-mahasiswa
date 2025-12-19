@@ -1,13 +1,15 @@
 <?php
 
 use App\Http\Controllers\Student\PrintController;
+use App\Livewire\Admin\Finance\BillingIndex;
+use App\Livewire\Admin\Finance\PaymentVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
-// Route::get('/', function () {
-//     return redirect()->route('login');
-// });
+Route::get('/', function () {
+    return redirect()->route('login');
+});
 
 Route::get('/pmb', \App\Livewire\Pmb\Landing::class)->name('home');
 Route::get('/info-pmb', \App\Livewire\Pmb\Info::class)->name('pmb.info');
@@ -35,10 +37,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', \App\Livewire\Admin\Dashboard::class)->name('dashboard');
         Route::get('/settings', \App\Livewire\Admin\Settings::class)->name('settings');
-        
+
         Route::prefix('finance')->name('finance.')->group(function () {
             Route::get('/billings', \App\Livewire\Admin\Finance\BillingIndex::class)->name('billings');
-            Route::get('/payments', \App\Livewire\Admin\Finance\PaymentVerification::class)->name('payments');
+            // Route::get('/finance/billings', BillingIndex::class)->name('finance.billings');
+            Route::get('/verify', PaymentVerification::class)->name('verify');
+            Route::get('/tuition-rates', \App\Livewire\Admin\Finance\TuitionRateManager::class)->name('rates');
+            Route::get('/fee-type', \App\Livewire\Admin\Finance\FeeTypeManager::class)->name('fee.type');
         });
 
         Route::prefix('master')->name('master.')->group(function () {
@@ -58,6 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/theses', \App\Livewire\Admin\Academic\ThesisManager::class)->name('theses');
             Route::get('/advisor-plotting', \App\Livewire\Admin\Academic\AdvisorPlotting::class)->name('advisor.plotting');
             Route::get('/import-schedule', \App\Livewire\Admin\Academic\ImportSchedule::class)->name('import.schedule');
+            Route::get('/import-course', \App\Livewire\Admin\Academic\ImportCourse::class)->name('import.course');
         });
 
         Route::prefix('lpm')->name('lpm.')->group(function () {
@@ -76,7 +82,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/users', \App\Livewire\Admin\System\UserManagement::class)->name('users');
         Route::get('/announcements', \App\Livewire\Admin\System\AnnouncementManager::class)->name('announcements');
         Route::get('/letters', \App\Livewire\Admin\System\LetterManager::class)->name('admin.letters');
-
     });
 
     Route::prefix('lecturer')->name('lecturer.')->group(function () {
@@ -92,7 +97,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', \App\Livewire\Lecturer\Thesis\SupervisionIndex::class)->name('index');
             Route::get('/{thesisId}', \App\Livewire\Lecturer\Thesis\GuidanceDetail::class)->name('guidance');
         });
-
     });
 
     Route::prefix('mhs')->name('student.')->group(function () {
@@ -115,8 +119,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/attendance/recap', \App\Livewire\Student\Attendance\AttendanceRecap::class)->name('attendance.recap');
         Route::get('/print/exam-card', [PrintController::class, 'printExamCard'])->name('print.exam-card');
         Route::get('/letters', \App\Livewire\Student\Letter\RequestIndex::class)->name('letters.index');
-         Route::get('/print/letter/{id}', [PrintController::class, 'printLetter'])->name('print.letter');
-   
+        Route::get('/print/letter/{id}', [PrintController::class, 'printLetter'])->name('print.letter');
     });
 
     Route::view('profile', 'profile')->name('profile');
@@ -129,6 +132,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/print-card', [\App\Http\Controllers\Pmb\PrintController::class, 'printCard'])->name('print.card');
         Route::get('/print-loa', [\App\Http\Controllers\Pmb\PrintController::class, 'printLoa'])->name('print.loa');
         Route::get('/exam', \App\Livewire\Pmb\CbtExam::class)->name('exam');
+        Route::get('/pmb/payment', \App\Livewire\Pmb\PmbPayment::class)->name('payment'); // Rute Baru
+
     });
 });
 

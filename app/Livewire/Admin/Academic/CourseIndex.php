@@ -20,18 +20,41 @@ class CourseIndex extends Component
     public $course_id, $study_program_id, $code, $name, $name_en;
     public $semester_default, $credit_total, $credit_theory = 0, $credit_practice = 0;
     public $is_active = true;
+    public $group_code = 'MKK'; // Default
+    public $is_mandatory = true;
+
+    // Prerequisite Properties
+    public $prerequisite_ids = []; 
+    public $prerequisite_grades = []; // Properti untuk menyimpan nilai minimal (ID => Grade)
 
     // Modal State
     public $isModalOpen = false;
     public $isEditMode = false;
 
-
-    public $group_code = 'MKK'; // Default
-    public $is_mandatory = true;
+    /**
+     * Lifecycle Hook: Berjalan otomatis saat matakuliah prasyarat dipilih/dihapus di UI.
+     * Perbaikan: Menggunakan properti class langsung untuk menghindari error type mismatch dari Livewire.
+     */
+    public function updatedPrerequisiteIds()
+    {
+        // Pastikan kita bekerja dengan array
+        $selectedIds = is_array($this->prerequisite_ids) ? $this->prerequisite_ids : [];
+        
+        $newGrades = [];
+        foreach ($selectedIds as $id) {
+            $idStr = (string)$id;
+            // Jika sudah ada nilainya (perubahan grade), pertahankan. Jika baru dipilih, beri default 'C'
+            $newGrades[$idStr] = $this->prerequisite_grades[$idStr] ?? 'C';
+        }
+        
+        // Update array grades agar sinkron dengan ID yang masih terpilih saja
+        $this->prerequisite_grades = $newGrades;
+    }
 
     public function render()
     {
-        $courses = Course::with('study_program')
+        // Eager load prerequisites untuk ditampilkan di tabel
+        $courses = Course::with(['study_program', 'prerequisites'])
             ->when($this->search, function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('code', 'like', '%' . $this->search . '%');
@@ -42,8 +65,16 @@ class CourseIndex extends Component
             ->orderBy('code', 'asc')
             ->paginate($this->paginate);
 
+        // Ambil semua matakuliah untuk pilihan prasyarat di form
+        // Kecuali matakuliah yang sedang diedit (untuk menghindari circular dependency)
+        $all_courses = Course::where('is_active', true)
+            ->when($this->course_id, fn($q) => $q->where('id', '!=', $this->course_id))
+            ->orderBy('name')
+            ->get();
+
         return view('livewire.admin.academic.course-index', [
             'courses' => $courses,
+            'all_courses' => $all_courses,
             'prodis' => StudyProgram::all()
         ])->layout('layouts.admin');
     }
@@ -59,7 +90,7 @@ class CourseIndex extends Component
     // Buka Modal Edit
     public function edit($id)
     {
-        $course = Course::find($id);
+        $course = Course::with('prerequisites')->find($id);
         $this->course_id = $id;
         $this->study_program_id = $course->study_program_id;
         $this->code = $course->code;
@@ -71,6 +102,17 @@ class CourseIndex extends Component
         $this->is_active = (bool) $course->is_active;
         $this->group_code = $course->group_code;
         $this->is_mandatory = (bool) $course->is_mandatory;
+
+        // Load data prasyarat (ID dan Nilai Minimal dari pivot)
+        $this->prerequisite_ids = [];
+        $this->prerequisite_grades = [];
+
+        foreach ($course->prerequisites as $pre) {
+            $idStr = (string)$pre->id;
+            $this->prerequisite_ids[] = $idStr;
+            $this->prerequisite_grades[$idStr] = $pre->pivot->min_grade ?? 'C';
+        }
+
         $this->isEditMode = true;
         $this->isModalOpen = true;
     }
@@ -87,11 +129,13 @@ class CourseIndex extends Component
             'credit_total' => 'required|numeric|min:1',
             'group_code' => 'required',
             'is_mandatory' => 'boolean',
+            'prerequisite_ids' => 'array',
+            'prerequisite_grades' => 'array'
         ]);
 
-        Course::updateOrCreate(['id' => $this->course_id], [
+        $course = Course::updateOrCreate(['id' => $this->course_id], [
             'study_program_id' => $this->study_program_id,
-            'code' => $this->code,
+            'code' => strtoupper($this->code),
             'name' => $this->name,
             'semester_default' => $this->semester_default,
             'credit_total' => $this->credit_total,
@@ -100,8 +144,21 @@ class CourseIndex extends Component
             'is_active' => $this->is_active,
             'group_code' => $this->group_code,
             'is_mandatory' => $this->is_mandatory,
-            'is_active' => $this->is_active,
         ]);
+
+        // Siapkan data untuk sinkronisasi pivot (ID => ['min_grade' => VALUE])
+        $syncData = [];
+        $selectedIds = is_array($this->prerequisite_ids) ? $this->prerequisite_ids : [];
+        
+        foreach ($selectedIds as $id) {
+            $idStr = (string)$id;
+            $syncData[$id] = [
+                'min_grade' => $this->prerequisite_grades[$idStr] ?? 'C'
+            ];
+        }
+
+        // Sinkronisasi data prasyarat dengan data pivot
+        $course->prerequisites()->sync($syncData);
 
         session()->flash('message', $this->isEditMode ? 'Matkul diperbarui!' : 'Matkul ditambahkan!');
         $this->closeModal();
@@ -130,5 +187,7 @@ class CourseIndex extends Component
         $this->is_active = true;
         $this->group_code = 'MKK';
         $this->is_mandatory = true;
+        $this->prerequisite_ids = [];
+        $this->prerequisite_grades = []; // Reset juga properti nilai
     }
 }

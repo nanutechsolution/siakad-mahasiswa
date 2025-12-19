@@ -36,7 +36,6 @@
     if (darkMode) document.documentElement.classList.add('dark');">
 
     <div class="flex h-screen overflow-hidden">
-
         <div x-show="sidebarOpen" x-transition.opacity @click="sidebarOpen = false"
             class="fixed inset-0 bg-slate-900/80 z-40 lg:hidden glass backdrop-blur-sm"></div>
 
@@ -107,6 +106,14 @@
                                     d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                             </svg>
                         </x-admin-link>
+                        <x-admin-link href="{{ route('admin.academic.import.course') }}" :active="request()->routeIs('admin.academic.import.course')"
+                            label="Import Matakuliah">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </x-admin-link>
                         <x-admin-link href="{{ route('admin.academic.classrooms') }}" :active="request()->routeIs('admin.academic.classrooms')"
                             label="Penjadwalan Kelas">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -114,9 +121,13 @@
                                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         </x-admin-link>
-                        <x-admin-link href="{{ route('admin.academic.import.schedule') }}" :active="request()->routeIs('admin.academic.import.schedule')" label="Import Jadwal (CSV)">
-    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-</x-admin-link>
+                        <x-admin-link href="{{ route('admin.academic.import.schedule') }}" :active="request()->routeIs('admin.academic.import.schedule')"
+                            label="Import Jadwal (CSV)">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                        </x-admin-link>
                         <x-admin-link href="{{ route('admin.master.periods') }}" :active="request()->routeIs('admin.master.periods')"
                             label="Periode / Semester">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -215,14 +226,38 @@
                                     d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </x-admin-link>
+                        <div class="space-y-1">
+                            <a href="{{ route('admin.finance.verify') }}"
+                                class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors {{ request()->routeIs('admin.finance.verify') ? 'bg-brand-blue text-white shadow-lg' : 'text-slate-600 hover:bg-slate-50' }}">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Verifikasi Bayar
+                                @php $pendingCount = \App\Models\Payment::where('status', 'PENDING')->count(); @endphp
+                                @if ($pendingCount > 0)
+                                    <span
+                                        class="ml-auto bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{{ $pendingCount }}</span>
+                                @endif
+                            </a>
 
-                        <x-admin-link href="{{ route('admin.finance.payments') }}" :active="request()->routeIs('admin.finance.payments')"
-                            label="Verifikasi Pembayaran">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </x-admin-link>
+                            <x-admin-link href="{{ route('admin.finance.fee.type') }}" :active="request()->routeIs('admin.finance.fee.type')"
+                                label="Master Jenis Tarif ">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+
+                            </x-admin-link>
+                            <x-admin-link href="{{ route('admin.finance.rates') }}" :active="request()->routeIs('admin.finance.rates')"
+                                label="Master Tarif SPP">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </x-admin-link>
+
+                        </div>
                     </div>
                 </div>
 
@@ -318,20 +353,27 @@
                 </div>
 
                 <div class="mb-6">
-    <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-500">
-        System & Tools
-    </p>
-    <div class="space-y-1">
-        <x-admin-link href="{{ route('admin.users') }}" :active="request()->routeIs('admin.users')" label="Manajemen User">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-        </x-admin-link>
-        <x-admin-link href="{{ route('admin.announcements') }}" :active="request()->routeIs('admin.announcements')" label="Pengumuman">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-        </x-admin-link>
-    </div>
-</div>
+                    <p
+                        class="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-500">
+                        System & Tools
+                    </p>
+                    <div class="space-y-1">
+                        <x-admin-link href="{{ route('admin.users') }}" :active="request()->routeIs('admin.users')" label="Manajemen User">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </x-admin-link>
+                        <x-admin-link href="{{ route('admin.announcements') }}" :active="request()->routeIs('admin.announcements')"
+                            label="Pengumuman">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </x-admin-link>
+                    </div>
+                </div>
             </nav>
-
             <!-- C. PROFILE BOTTOM -->
             <div
                 class="border-t p-4 transition-colors
@@ -373,7 +415,6 @@
         </aside>
 
         <div class="flex flex-1 flex-col overflow-hidden">
-
             <header
                 class="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 dark:border-slate-700 dark:bg-slate-800 transition-colors">
                 <button @click="sidebarOpen = true" class="text-slate-500 lg:hidden dark:text-slate-400">
@@ -382,12 +423,28 @@
                             d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
-
                 <h2 class="hidden text-xl font-semibold text-slate-800 dark:text-white sm:block">
                     {{ $header ?? 'Dashboard' }}
                 </h2>
-
                 <div class="flex items-center gap-4">
+                    {{-- START: Semester Akademik Badge --}}
+                    @php
+                        $globalActivePeriod = \App\Models\AcademicPeriod::where('is_active', true)->first();
+                    @endphp
+                    <div class="flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-1.5 bg-slate-50 dark:bg-slate-700/50 rounded-full border border-slate-200 dark:border-slate-600 shadow-sm transition-all">
+                        <span class="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2 flex-shrink-0">
+                          @if($globalActivePeriod)
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-blue opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-brand-blue"></span>
+                          @else
+                            <span class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-red-500"></span>
+                          @endif
+                        </span>
+                        <span class="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap max-w-[100px] sm:max-w-none truncate">
+                            {{ $globalActivePeriod->name ?? 'Non-Aktif' }}
+                        </span>
+                    </div>
+                    {{-- END: Semester Akademik Badge --}}
                     <button @click="toggleTheme()"
                         class="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-500 dark:hover:bg-slate-700 transition-all">
                         <svg x-show="darkMode" class="h-6 w-6" fill="none" viewBox="0 0 24 24"

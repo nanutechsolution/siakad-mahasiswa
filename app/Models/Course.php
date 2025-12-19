@@ -31,16 +31,17 @@ class Course extends Model
     }
 
 
-    // Cara bacanya: "Matkul ini (Web 2) menuntut lulus matkul apa saja?"
+   // Relasi: Mengambil daftar Matkul Prasyarat untuk matkul ini
     public function prerequisites()
     {
-        return $this->belongsToMany(Course::class, 'course_prerequisites', 'course_id', 'prerequisite_course_id')
-            ->withPivot('min_grade');
+        return $this->belongsToMany(Course::class, 'course_prerequisites', 'course_id', 'prerequisite_id')
+                    ->withPivot('min_grade')
+                    ->withTimestamps();
     }
 
-    // Cara bacanya: "Matkul ini (Web 1) menjadi syarat untuk matkul apa saja?"
+    // Relasi Kebalikan: Matkul ini menjadi prasyarat bagi matkul apa saja?
     public function required_for()
     {
-        return $this->belongsToMany(Course::class, 'course_prerequisites', 'prerequisite_course_id', 'course_id');
+        return $this->belongsToMany(Course::class, 'course_prerequisites', 'prerequisite_id', 'course_id');
     }
 }
