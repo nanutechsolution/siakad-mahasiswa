@@ -25,6 +25,7 @@ class PmbSyncController extends Controller
         }
 
         $input = $request->all();
+        dd($input);
 
         // 2. Mapping key lokal ke english
         if (!isset($input['mother_name']) && isset($input['nama_ibu'])) $input['mother_name'] = $input['nama_ibu'];
@@ -37,7 +38,7 @@ class PmbSyncController extends Controller
             'nik' => 'required|numeric',
             'name' => 'required|string',
             'email' => 'required|email',
-            // 'prodi_code' => 'required|exists:study_programs,code',
+            'prodi_code' => 'required|exists:study_programs,code',
             'entry_year' => 'required|digits:4',
             'mother_name' => 'required|string',
         ]);
