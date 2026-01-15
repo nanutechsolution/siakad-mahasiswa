@@ -133,6 +133,7 @@ class PmbSyncController extends Controller
                 ]
             ], 201);
         } catch (\Exception $e) {
+            dd($e);
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
