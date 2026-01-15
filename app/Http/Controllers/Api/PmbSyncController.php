@@ -72,7 +72,6 @@ class PmbSyncController extends Controller
             $prodi = StudyProgram::where('code', $input['prodi_code'])->firstOrFail();
 
             // Hitung nominal SPP
-            // --- LOGIC TARIF SPP (BEST PRACTICE) ---
             $sppType = FeeType::where('code', 'SPP')->first();
             $nominalSpp = 0;
 
