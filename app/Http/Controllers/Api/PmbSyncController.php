@@ -25,7 +25,24 @@ class PmbSyncController extends Controller
         }
 
         $input = $request->all();
-        return response()->json(['status' => 'error', 'errors' => $input], 422);
+
+        if (!empty($input['prodi_code'])) {
+            $prodi = StudyProgram::where('name', $input['prodi_code'])->first();
+
+            if (!$prodi) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Program studi tidak ditemukan di SIAKAD',
+                    'detail'  => [
+                        'prodi_code' => $input['prodi_code']
+                    ]
+                ], 422);
+            }
+
+            // 🔁 Ganti nama menjadi kode
+            $input['prodi_code'] = $prodi->code;
+        }
+
 
         // 2. Mapping key lokal ke english
         if (!isset($input['mother_name']) && isset($input['nama_ibu'])) $input['mother_name'] = $input['nama_ibu'];
@@ -41,6 +58,8 @@ class PmbSyncController extends Controller
             'prodi_code' => 'required|exists:study_programs,code',
             'entry_year' => 'required|digits:4',
             'mother_name' => 'required|string',
+        ], [
+            'prodi_code.exists' => 'Program studi tidak terdaftar di SIAKAD'
         ]);
 
         if ($validator->fails()) {
