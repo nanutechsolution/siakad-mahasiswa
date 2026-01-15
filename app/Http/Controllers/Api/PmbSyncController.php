@@ -25,7 +25,7 @@ class PmbSyncController extends Controller
         }
 
         $input = $request->all();
-        dd($input);
+        return response()->json(['status' => 'error', 'errors' => $input], 422);
 
         // 2. Mapping key lokal ke english
         if (!isset($input['mother_name']) && isset($input['nama_ibu'])) $input['mother_name'] = $input['nama_ibu'];
