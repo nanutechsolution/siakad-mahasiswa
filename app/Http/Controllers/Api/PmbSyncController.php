@@ -19,6 +19,7 @@ class PmbSyncController extends Controller
 {
     public function store(Request $request)
     {
+        dd($request->all());
         // 1. Security check
         if ($request->input('secret_key') !== env('PMB_API_SECRET')) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
@@ -133,7 +134,6 @@ class PmbSyncController extends Controller
                 ]
             ], 201);
         } catch (\Exception $e) {
-            dd($e);
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
