@@ -1,9 +1,12 @@
 <div class="space-y-8 font-sans">
     <x-slot name="header">Dashboard Eksekutif</x-slot>
 
-    <!-- 1. WELCOME BANNER (Tetap sama, kode dipersingkat) -->
+    <!-- 1. WELCOME BANNER -->
     <div class="relative overflow-hidden rounded-3xl bg-slate-900 p-8 text-white shadow-xl">
-        <!-- ... background ornaments ... -->
+        <!-- Background Ornaments -->
+        <div class="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-brand-blue to-transparent opacity-40"></div>
+        <div class="absolute -right-10 -bottom-20 h-64 w-64 rounded-full bg-brand-gold/20 blur-3xl"></div>
+        
         <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
                 <h2 class="text-3xl font-black">Dashboard & Analisa</h2>
@@ -18,7 +21,7 @@
         </div>
     </div>
 
-    <!-- 2. FILTER SECTION (BARU) -->
+    <!-- 2. FILTER SECTION -->
     <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col md:flex-row gap-4 items-center justify-between">
         <div class="flex items-center gap-2 text-slate-500">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
@@ -102,64 +105,74 @@
     </div>
 
     <!-- 5. AKTIVITAS (Sama seperti sebelumnya, disembunyikan untuk ringkas) -->
-</div>
 
-<!-- Scripts Chart -->
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<script>
-    document.addEventListener('livewire:navigated', () => {
-        let chartProdi, chartFinance;
-
-        const initCharts = (prodiValues, prodiLabels, financeStats) => {
-            // 1. Chart Prodi
-            const optionsProdi = {
-                series: [{ name: 'Jumlah Mahasiswa', data: prodiValues }],
-                chart: { type: 'bar', height: 320, fontFamily: 'Plus Jakarta Sans, sans-serif', toolbar: { show: false }, animations: { enabled: true } },
-                plotOptions: { bar: { borderRadius: 6, horizontal: true, barHeight: '60%' } },
-                dataLabels: { enabled: false },
-                colors: ['#1a237e'],
-                xaxis: { categories: prodiLabels },
-                grid: { borderColor: '#f1f5f9' },
-                tooltip: { theme: 'dark' }
-            };
-            
-            if(chartProdi) chartProdi.destroy();
-            chartProdi = new ApexCharts(document.querySelector("#prodiChart"), optionsProdi);
-            chartProdi.render();
-
-            // 2. Chart Keuangan
-            const optionsFinance = {
-                series: financeStats,
-                chart: { type: 'donut', height: 250, fontFamily: 'Plus Jakarta Sans, sans-serif', animations: { enabled: true } },
-                labels: ['Lunas', 'Belum Lunas'],
-                colors: ['#10b981', '#ef4444'],
-                plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: 'Tagihan', fontSize: '12px', fontWeight: 'bold', color: '#94a3b8' } } } } },
-                dataLabels: { enabled: false },
-                legend: { position: 'bottom' },
-                stroke: { show: false },
-                tooltip: { theme: 'dark' }
+    <!-- Scripts Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+        document.addEventListener('livewire:navigated', () => {
+            // Assign data safely to prevent syntax errors
+            const chartData = {
+                prodiValues: @json($chart_prodi_values),
+                prodiLabels: @json($chart_prodi_labels),
+                financeStats: @json($finance_stats)
             };
 
-            if(chartFinance) chartFinance.destroy();
-            chartFinance = new ApexCharts(document.querySelector("#financeChart"), optionsFinance);
-            chartFinance.render();
-        };
+            let chartProdi, chartFinance;
 
-        // Initialize First Load
-        initCharts(
-            @json($chart_prodi_values), 
-            @json($chart_prodi_labels), 
-            @json($finance_stats)
-        );
+            const initCharts = (prodiValues, prodiLabels, financeStats) => {
+                // 1. Chart Prodi
+                const optionsProdi = {
+                    series: [{ name: 'Jumlah Mahasiswa', data: prodiValues }],
+                    chart: { type: 'bar', height: 320, fontFamily: 'Plus Jakarta Sans, sans-serif', toolbar: { show: false }, animations: { enabled: true } },
+                    plotOptions: { bar: { borderRadius: 6, horizontal: true, barHeight: '60%' } },
+                    dataLabels: { enabled: false },
+                    colors: ['#1a237e'],
+                    xaxis: { categories: prodiLabels },
+                    grid: { borderColor: '#f1f5f9' },
+                    tooltip: { theme: 'dark' }
+                };
+                
+                if(chartProdi) chartProdi.destroy();
+                chartProdi = new ApexCharts(document.querySelector("#prodiChart"), optionsProdi);
+                chartProdi.render();
 
-        // Listen for Livewire updates
-        Livewire.on('update-charts', (data) => {
-            // Data dikirim dalam array, ambil item pertama
-            const payload = data[0]; 
-            // Update Series saja agar animasi jalan mulus
-            chartProdi.updateSeries([{ data: payload.prodi_values }]);
-            chartProdi.updateOptions({ xaxis: { categories: payload.prodi_labels } });
-            chartFinance.updateSeries(payload.finance_stats);
+                // 2. Chart Keuangan
+                const optionsFinance = {
+                    series: financeStats,
+                    chart: { type: 'donut', height: 250, fontFamily: 'Plus Jakarta Sans, sans-serif', animations: { enabled: true } },
+                    labels: ['Lunas', 'Belum Lunas'],
+                    colors: ['#10b981', '#ef4444'],
+                    plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: 'Tagihan', fontSize: '12px', fontWeight: 'bold', color: '#94a3b8' } } } } },
+                    dataLabels: { enabled: false },
+                    legend: { position: 'bottom' },
+                    stroke: { show: false },
+                    tooltip: { theme: 'dark' }
+                };
+
+                if(chartFinance) chartFinance.destroy();
+                chartFinance = new ApexCharts(document.querySelector("#financeChart"), optionsFinance);
+                chartFinance.render();
+            };
+
+            // Initialize First Load
+            initCharts(chartData.prodiValues, chartData.prodiLabels, chartData.financeStats);
+
+            // Listen for Livewire updates
+            Livewire.on('update-charts', (data) => {
+                // In Livewire 3, the payload is passed directly as 'data' (the object),
+                // or sometimes wrapped if multiple arguments are sent. 
+                // We check if it's the object we expect.
+                const payload = data; 
+                
+                if (chartProdi && payload.prodi_values) {
+                    chartProdi.updateSeries([{ data: payload.prodi_values }]);
+                    chartProdi.updateOptions({ xaxis: { categories: payload.prodi_labels } });
+                }
+                
+                if (chartFinance && payload.finance_stats) {
+                    chartFinance.updateSeries(payload.finance_stats);
+                }
+            });
         });
-    });
-</script>
+    </script>
+</div>
