@@ -93,7 +93,7 @@ class PmbSyncController extends Controller
                 ], 422);
             }
             // 4. Buat User Camaba
-            $defaultPassword = 'pmb' . $input['entry_year'];
+            $defaultPassword = $input['nik'];
 
             $user = User::updateOrCreate(
                 ['email' => $input['email']],
