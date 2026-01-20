@@ -40,7 +40,7 @@ class Dashboard extends Component
         // Chart ini tetap menampilkan semua prodi untuk perbandingan, 
         // tapi jika filter prodi aktif, kita bisa highlight (opsional), 
         // disini kita tetap load semua agar chart batang tetap informatif.
-        $data = StudyProgram::withCount(['students' => function($q) {
+        $data = StudyProgram::withCount(['students' => function ($q) {
             $q->where('status', 'A');
         }])->get();
 
@@ -57,7 +57,7 @@ class Dashboard extends Component
 
         $paid = Billing::where('academic_period_id', $this->selected_period_id)
             ->where('status', 'PAID');
-            
+
         $unpaid = Billing::where('academic_period_id', $this->selected_period_id)
             ->where('status', '!=', 'PAID');
 
@@ -96,7 +96,8 @@ class Dashboard extends Component
         $activities = [];
         try {
             $activities = ActivityLog::with('user')->latest()->take(5)->get();
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
 
         return view('livewire.admin.dashboard', [
             'total_mhs' => $total_mhs,
@@ -105,7 +106,7 @@ class Dashboard extends Component
             'periods' => $periods,
             'prodis' => $prodis,
             'chart_prodi_labels' => $chartData['labels'],
-            'chart_prodi_values' => $chartData['values'],
+            'chart_prodi_values' => $chartData['values'],   
             'finance_stats' => $financeStats,
             'activities' => $activities
         ])->layout('layouts.admin');
