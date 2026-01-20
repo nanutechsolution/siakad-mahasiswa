@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -431,16 +432,21 @@
                     @php
                         $globalActivePeriod = \App\Models\AcademicPeriod::where('is_active', true)->first();
                     @endphp
-                    <div class="flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-1.5 bg-slate-50 dark:bg-slate-700/50 rounded-full border border-slate-200 dark:border-slate-600 shadow-sm transition-all">
+                    <div
+                        class="flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-1.5 bg-slate-50 dark:bg-slate-700/50 rounded-full border border-slate-200 dark:border-slate-600 shadow-sm transition-all">
                         <span class="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2 flex-shrink-0">
-                          @if($globalActivePeriod)
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-blue opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-brand-blue"></span>
-                          @else
-                            <span class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-red-500"></span>
-                          @endif
+                            @if ($globalActivePeriod)
+                                <span
+                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-blue opacity-75"></span>
+                                <span
+                                    class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-brand-blue"></span>
+                            @else
+                                <span
+                                    class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-red-500"></span>
+                            @endif
                         </span>
-                        <span class="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap max-w-[100px] sm:max-w-none truncate">
+                        <span
+                            class="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap max-w-[100px] sm:max-w-none truncate">
                             {{ $globalActivePeriod->name ?? 'Non-Aktif' }}
                         </span>
                     </div>
