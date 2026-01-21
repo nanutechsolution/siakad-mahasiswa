@@ -106,7 +106,7 @@ class Dashboard extends Component
             'periods' => $periods,
             'prodis' => $prodis,
             'chart_prodi_labels' => $chartData['labels'],
-            'chart_prodi_values' => $chartData['values'],   
+            'chart_prodi_values' => $chartData['values'],
             'finance_stats' => $financeStats,
             'activities' => $activities
         ])->layout('layouts.admin');
