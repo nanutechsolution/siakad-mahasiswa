@@ -35,7 +35,6 @@ class RegistrantIndex extends Component
 
     public function render()
     {
-        // PERBAIKAN: Tambahkan 'billing.payments' agar bisa cek status per transaksi di tabel
         $registrants = Registrant::with(['user', 'firstChoice', 'billing.payments']) 
             ->where('status', RegistrantStatus::ACCEPTED)
             

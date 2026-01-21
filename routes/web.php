@@ -11,8 +11,8 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/pmb', \App\Livewire\Pmb\Landing::class)->name('home');
-Route::get('/info-pmb', \App\Livewire\Pmb\Info::class)->name('pmb.info');
+// Route::get('/pmb', \App\Livewire\Pmb\Landing::class)->name('home');
+// Route::get('/info-pmb', \App\Livewire\Pmb\Info::class)->name('pmb.info');
 // Rute untuk USER yang sudah LOGIN
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -71,11 +71,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/edom-result', \App\Livewire\Admin\Lpm\EdomResult::class)->name('edom.result');
         });
         Route::prefix('pmb')->name('pmb.')->group(function () {
-            Route::get('/dashboard', \App\Livewire\Admin\Pmb\PmbDashboard::class)->name('dashboard');
+            // Route::get('/dashboard', \App\Livewire\Admin\Pmb\PmbDashboard::class)->name('dashboard');
             Route::get('/registrants', \App\Livewire\Admin\Pmb\RegistrantIndex::class)->name('registrants');
-            Route::get('/waves', \App\Livewire\Admin\Pmb\WaveManagement::class)->name('waves');
-            Route::get('/exams', \App\Livewire\Admin\Pmb\ExamManager::class)->name('exams');
-            Route::get('/exam-recap', \App\Livewire\Admin\Pmb\ExamScoreRecap::class)->name('exam.recap');
+            // Route::get('/waves', \App\Livewire\Admin\Pmb\WaveManagement::class)->name('waves');
+            // Route::get('/exams', \App\Livewire\Admin\Pmb\ExamManager::class)->name('exams');
+            // Route::get('/exam-recap', \App\Livewire\Admin\Pmb\ExamScoreRecap::class)->name('exam.recap');
         });
 
         Route::get('/settings/nim', \App\Livewire\Admin\Settings\NimConfig::class)->name('settings.nim');
