@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('study_programs', function (Blueprint $table) {
             // Default 144 SKS (Standar S1)
-            $table->integer('total_credits')->default(144)->after('degree'); 
+            $table->integer('total_credits')->default(144)->after('degree');
         });
     }
 

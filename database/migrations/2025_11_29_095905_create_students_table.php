@@ -12,11 +12,11 @@ return new class extends Migration
    public function up(): void
 {
     Schema::create('students', function (Blueprint $table) {
-        $table->ulid('id')->primary();
+        $table->char('id', 26)->primary();
         
+        $table->char('user_id', 26);
         // Relasi (Perhatikan tipe datanya harus sama dengan tabel induk)
-        $table->foreignUlid('user_id')->constrained()->cascadeOnDelete();
-        $table->foreignId('study_program_id')->constrained();
+        $table->char('study_program_id', 26); 
 
         $table->string('nim', 20)->unique();
         $table->string('entry_year', 4);
@@ -27,7 +27,7 @@ return new class extends Migration
         $table->string('phone')->nullable();
         $table->enum('gender', ['L', 'P']);
         
-        $table->char('status', 1)->default('A')->index(); // A=Aktif
+        $table->string('status', 20)->default('active')->index();
         
         $table->timestamps();
         $table->softDeletes();

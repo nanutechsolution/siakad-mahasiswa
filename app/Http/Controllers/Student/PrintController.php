@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\AcademicPeriod;
 use App\Models\StudyPlan;
+use App\Models\StudyPlanDetail;
 use App\Models\Setting; 
 use App\Models\LetterRequest; 
+use App\Enums\KrsStatus;
 
 class PrintController extends Controller
 {
@@ -22,39 +24,38 @@ class PrintController extends Controller
             return redirect()->back()->with('error', 'Data mahasiswa tidak ditemukan.');
         }
 
-        // Load relasi Fakultas untuk kop surat
-        $student->load('study_program.faculty');
-
+        $student->load('studyProgram.faculty');
         $active_period = AcademicPeriod::where('is_active', true)->first();
 
         if (!$active_period) {
             return redirect()->back()->with('error', 'Tidak ada periode akademik aktif.');
         }
 
-        $krs_data = StudyPlan::with(['classroom.course', 'classroom.schedules', 'classroom.lecturer.user'])
+        // Refaktor: Ambil Header dan Detailnya
+        $krs = StudyPlan::with(['details.courseClass.course', 'details.courseClass.classSchedules', 'details.courseClass.lecturers.user'])
             ->where('student_id', $student->id)
             ->where('academic_period_id', $active_period->id)
-            ->whereIn('status', ['SUBMITTED', 'APPROVED'])
-            ->get();
+            ->whereIn('status', [KrsStatus::SUBMITTED->value, KrsStatus::APPROVED->value])
+            ->first();
 
-        $total_sks = $krs_data->sum(function ($item) {
-            return $item->classroom->course->credit_total;
-        });
+        if (!$krs) {
+            return redirect()->back()->with('error', 'KRS belum diisi atau belum diajukan.');
+        }
 
-        // AMBIL SETTING KAMPUS
+        $total_sks = $krs->details->sum(fn($item) => $item->courseClass->course->credit_total ?? 0);
         $setting = Setting::first();
 
         $pdf = Pdf::loadView('pdf.krs', [
             'student' => $student,
             'period' => $active_period,
-            'data' => $krs_data,
+            'krs' => $krs,
+            'data' => $krs->details,
             'total_sks' => $total_sks,
-            'setting' => $setting, // <--- Kirim ke View
+            'setting' => $setting,
             'printed_at' => now()->format('d F Y H:i')
         ]);
 
         $pdf->setPaper('A4', 'portrait');
-
         return $pdf->stream('KRS_' . $student->nim . '_' . $active_period->code . '.pdf');
     }
 
@@ -67,52 +68,47 @@ class PrintController extends Controller
             return redirect()->back()->with('error', 'Data mahasiswa tidak ditemukan.');
         }
 
-        // Load relasi Fakultas
-        $student->load('study_program.faculty');
+        $student->load('studyProgram.faculty');
 
-        if ($request->has('period_id')) {
-            $period = AcademicPeriod::find($request->period_id);
-        } else {
-            $period = AcademicPeriod::where('is_active', true)->first();
-        }
+        $period = $request->has('period_id') 
+            ? AcademicPeriod::find($request->period_id) 
+            : AcademicPeriod::where('is_active', true)->first();
 
         if (!$period) {
             return redirect()->back()->with('error', 'Periode akademik tidak ditemukan.');
         }
 
-        $khs_data = StudyPlan::with(['classroom.course'])
+        // Refaktor: Ambil Detail melalui Header
+        $khs = StudyPlan::with(['details.courseClass.course'])
             ->where('student_id', $student->id)
             ->where('academic_period_id', $period->id)
-            ->where('status', 'APPROVED')
-            ->get();
+            ->where('status', KrsStatus::APPROVED->value)
+            ->first();
 
-        $total_sks = $khs_data->sum(fn($item) => $item->classroom->course->credit_total);
+        if (!$khs) {
+            return redirect()->back()->with('error', 'Data KHS tidak ditemukan atau belum disetujui.');
+        }
 
-        $total_bobot = $khs_data->sum(function ($item) {
-            return $item->classroom->course->credit_total * $item->grade_point;
-        });
-
+        $total_sks = $khs->details->sum(fn($item) => $item->courseClass->course->credit_total ?? 0);
+        $total_bobot = $khs->details->sum(fn($item) => ($item->courseClass->course->credit_total ?? 0) * ($item->grade_point ?? 0));
         $ips = $total_sks > 0 ? number_format($total_bobot / $total_sks, 2) : 0;
 
-        // AMBIL SETTING KAMPUS
         $setting = Setting::first();
 
         $pdf = Pdf::loadView('pdf.khs', [
             'student' => $student,
             'period' => $period,
-            'data' => $khs_data,
+            'data' => $khs->details,
             'total_sks' => $total_sks,
             'total_bobot' => $total_bobot,
             'ips' => $ips,
-            'setting' => $setting, // <--- Kirim ke View
+            'setting' => $setting,
             'printed_at' => now()->format('d F Y')
         ]);
 
         $pdf->setPaper('A4', 'portrait');
-
         return $pdf->stream('KHS_' . $student->nim . '_' . $period->code . '.pdf');
     }
-
 
     public function printTranscript()
     {
@@ -121,37 +117,27 @@ class PrintController extends Controller
 
         if (!$student) return redirect()->back()->with('error', 'Data mahasiswa tidak ditemukan.');
 
-        $student->load('study_program.faculty');
+        $student->load('studyProgram.faculty');
         $setting = Setting::first();
 
-        // Ambil Semua Nilai Approved
-        // $grades = StudyPlan::with(['classroom.course', 'academic_period'])
-        //     ->where('student_id', $student->id)
-        //     ->where('status', 'APPROVED')
-        //     ->get()
-        //     ->sortBy(function ($q) {
-        //         // Urutkan berdasarkan Semester (1, 2, 3...)
-        //         return $q->classroom->course->semester_default;
-        //     });
-
-        $raw_grades = StudyPlan::with(['classroom.course', 'academic_period'])
-            ->where('student_id', $student->id)
-            ->where('status', 'APPROVED')
+        // Refaktor: Ambil langsung dari Detail yang status headernya Approved
+        $raw_grades = StudyPlanDetail::whereHas('studyPlan', function($q) use ($student) {
+                $q->where('student_id', $student->id)
+                  ->where('status', KrsStatus::APPROVED->value);
+            })
+            ->with(['courseClass.course', 'studyPlan.academicPeriod'])
             ->whereNotNull('grade_point')
             ->get();
 
-        // FILTER: Ambil Nilai Terbaik Saja
-        $clean_grades = $raw_grades->groupBy('classroom.course_id')
+        // FILTER: Ambil Nilai Terbaik Saja (GroupBy Course ID)
+        $clean_grades = $raw_grades->groupBy('courseClass.course_id')
             ->map(function ($attempts) {
                 return $attempts->sortByDesc('grade_point')->first();
             })
-            ->sortBy(function ($q) {
-                // Urutkan berdasarkan Semester Default Matkul (1, 2, 3...)
-                return $q->classroom->course->semester_default;
-            });
+            ->sortBy('courseClass.course.semester_default');
 
-        $total_sks = $clean_grades->sum(fn($i) => $i->classroom->course->credit_total);
-        $total_bobot = $clean_grades->sum(fn($i) => $i->classroom->course->credit_total * $i->grade_point);
+        $total_sks = $clean_grades->sum(fn($i) => $i->courseClass->course->credit_total ?? 0);
+        $total_bobot = $clean_grades->sum(fn($i) => ($i->courseClass->course->credit_total ?? 0) * ($i->grade_point ?? 0));
         $ipk = $total_sks > 0 ? number_format($total_bobot / $total_sks, 2) : 0.00;
 
         $pdf = Pdf::loadView('pdf.transcript', [
@@ -168,24 +154,22 @@ class PrintController extends Controller
         return $pdf->stream('Transkrip_' . $student->nim . '.pdf');
     }
 
-      public function printActiveStudent()
+    public function printActiveStudent()
     {
         $user = Auth::user();
         $student = $user->student;
 
         if (!$student) return redirect()->back();
 
-        // 1. Validasi: Harus Status Aktif
-        if ($student->status !== 'A') {
+        // Status 'active' (lowercase) sesuai refaktor status mahasiswa
+        if ($student->status !== 'active') {
             return redirect()->back()->with('error', 'Anda tidak berstatus Aktif. Tidak dapat mencetak surat.');
         }
 
-        // 2. Data Pendukung
-        $student->load('study_program.faculty');
+        $student->load('studyProgram.faculty');
         $setting = Setting::first();
         $active_period = AcademicPeriod::where('is_active', true)->first();
         
-        // Nomor Surat Otomatis (Format: NO/AKTIF/TAHUN/NIM) - Bisa disesuaikan
         $nomor_surat = "109/UNMARIS/BAAK/" . date('Y') . "/" . $student->nim;
 
         $pdf = Pdf::loadView('pdf.active-letter', [
@@ -198,7 +182,6 @@ class PrintController extends Controller
         ]);
 
         $pdf->setPaper('A4', 'portrait');
-
         return $pdf->stream('Surat_Aktif_' . $student->nim . '.pdf');
     }
 
@@ -212,93 +195,71 @@ class PrintController extends Controller
             return redirect()->back()->with('error', 'Data tidak valid.');
         }
 
-        // 1. CEK KEUANGAN (GATEKEEPER)
-        // Cari tagihan wajib (SPP) di semester ini yang belum lunas
+        // Cek Tagihan
         $unpaid_bills = $student->billings()
             ->where('academic_period_id', $active_period->id)
-            ->where('category', 'SPP') // Hanya cek SPP, tagihan lain opsional
-            ->where('status', '!=', 'PAID')
+            ->where('status', 'unpaid')
             ->exists();
 
         if ($unpaid_bills) {
-            return redirect()->route('student.bills')
-                ->with('error', 'MAAF! Kartu Ujian terkunci. Harap lunasi tagihan SPP semester ini terlebih dahulu.');
+            return redirect()->back()->with('error', 'Kartu Ujian terkunci. Harap lunasi tagihan terlebih dahulu.');
         }
 
-        // 2. CEK KRS
-        // Ambil matkul yang diambil (Approved)
-        $krs_data = StudyPlan::with(['classroom.course', 'classroom.schedules'])
+        // Ambil matkul via Header-Detail
+        $krs = StudyPlan::with(['details.courseClass.course', 'details.courseClass.classSchedules'])
             ->where('student_id', $student->id)
             ->where('academic_period_id', $active_period->id)
-            ->where('status', 'APPROVED')
-            ->get();
+            ->where('status', KrsStatus::APPROVED->value)
+            ->first();
 
-        if ($krs_data->isEmpty()) {
-            return redirect()->route('student.krs')
-                ->with('error', 'Anda belum mengisi KRS atau KRS belum disetujui Dosen Wali.');
+        if (!$krs || $krs->details->isEmpty()) {
+            return redirect()->back()->with('error', 'KRS belum disetujui.');
         }
 
-        $student->load('study_program.faculty');
+        $student->load('studyProgram.faculty');
         $setting = Setting::first();
 
         $pdf = Pdf::loadView('pdf.exam-card', [
             'student' => $student,
             'period' => $active_period,
-            'data' => $krs_data,
+            'data' => $krs->details,
             'setting' => $setting,
             'printed_at' => now()->format('d F Y H:i')
         ]);
 
         $pdf->setPaper('A4', 'portrait');
-
         return $pdf->stream('Kartu_Ujian_' . $student->nim . '.pdf');
     }
 
-     public function printLetter($id)
+    public function printLetter($id)
     {
         $user = Auth::user();
-        
-        // Cari request surat milik mahasiswa ini (atau admin jika admin mau cetak, perlu logic tambahan jika admin)
-        // Disini kita asumsi mahasiswa yang cetak sendiri
-        $request = LetterRequest::with(['student.user', 'student.study_program.faculty'])
+        $request = LetterRequest::with(['student.user', 'student.studyProgram.faculty'])
             ->where('id', $id)
             ->first();
             
-        // Jika tidak ketemu via student_id, cek apakah user adalah admin (opsional, untuk admin preview)
-        if (!$request && $user->role === 'admin') {
-             $request = LetterRequest::with(['student.user', 'student.study_program.faculty'])->find($id);
-        } else if (!$request && $user->role !== 'admin') {
-             // Cek validitas kepemilikan jika bukan admin
-             $request = LetterRequest::where('id', $id)->where('student_id', $user->student->id)->first();
-        }
-
         if (!$request) {
-            return redirect()->back()->with('error', 'Surat tidak ditemukan atau Anda tidak memiliki akses.');
+            return redirect()->back()->with('error', 'Surat tidak ditemukan.');
         }
 
-        if ($request->status !== 'COMPLETED') {
-            return redirect()->back()->with('error', 'Surat belum selesai diproses oleh Admin.');
+        if ($request->status !== 'completed') {
+            return redirect()->back()->with('error', 'Surat belum selesai diproses.');
         }
 
         $student = $request->student;
         $setting = Setting::first();
         $active_period = AcademicPeriod::where('is_active', true)->first();
 
-        // Pilih View berdasarkan tipe surat (bisa dibuat beda-beda)
-        // Untuk sekarang kita pakai 1 template umum
-        $view = 'pdf.general-letter';
-
-        $pdf = Pdf::loadView($view, [
+        $pdf = Pdf::loadView('pdf.general-letter', [
             'request' => $request,
             'student' => $student,
-            'user' => $student->user, // User dari student, bukan yang login (jika admin yg cetak)
+            'user' => $student->user,
             'setting' => $setting,
             'period' => $active_period,
             'date' => now()->format('d F Y')
         ]);
 
         $pdf->setPaper('A4', 'portrait');
-
         return $pdf->stream('Surat_' . str_replace(' ', '_', $request->type) . '_' . $student->nim . '.pdf');
     }
 }

@@ -18,7 +18,11 @@ class DatabaseSeeder extends Seeder
             AcademicPeriodSeeder::class,
         ]);
         $this->call([
+            CurriculumSeeder::class,
             CourseSeeder::class,    
+            CourseGroupSeeder::class,
+            CurriculumCourseSeeder::class,
+            CoursePrerequisiteSeeder::class,
             ClassroomSeeder::class, 
             EdomSeeder::class,
             BillingSeeder::class,
@@ -26,7 +30,7 @@ class DatabaseSeeder extends Seeder
             RealStudentSeeder::class,
             UserSeeder::class,
             FeeTypeSeeder::class,
-            SamplePassedRegistrantSeeder::class,
+            // SamplePassedRegistrantSeeder::class,
         ]);
         // \App\Models\Student::factory(20)->create();
         \App\Models\Setting::create([
@@ -34,7 +38,7 @@ class DatabaseSeeder extends Seeder
             'campus_email' => 'info@unmaris.ac.id',
             'campus_address' => 'Tambolaka, Sumba Barat Daya',
             'campus_phone' => '0812345678',
-            'website_url' => 'https://unmaris.ac.id',
+            'website_url' => 'https://unmarissumba.ac.id',
         ]);
     }
 }

@@ -8,27 +8,41 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // 1. Tabel Header Skripsi (Proposal)
+        // 1. Tabel Header Skripsi (Proposal & TA)
         Schema::create('theses', function (Blueprint $table) {
-            $table->ulid('id')->primary();
-            $table->foreignUlid('student_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('academic_period_id')->constrained(); // Semester pengajuan
+            $table->char('id', 26)->primary(); // ULID
+            
+            // Relasi ke Mahasiswa & Periode
+            $table->char('student_id', 26);
+            $table->char('academic_period_id', 26); // FIX: Ubah ke Char 26 agar jodoh
             
             $table->string('title'); // Judul Skripsi
             $table->text('abstract')->nullable();
             $table->string('proposal_file')->nullable(); // File PDF Proposal
             
-            // Status: PROPOSED (Diajukan), APPROVED (Disetujui Kaprodi), REVISION, COMPLETED (Lulus Sidang)
+            // Status Flow Skripsi
             $table->enum('status', ['PROPOSED', 'REJECTED', 'APPROVED', 'ON_PROGRESS', 'COMPLETED'])->default('PROPOSED');
             
             $table->timestamps();
+
+            // Foreign Keys
+            $table->foreign('student_id')
+                  ->references('id')
+                  ->on('students')
+                  ->onDelete('cascade');
+
+            $table->foreign('academic_period_id')
+                  ->references('id')
+                  ->on('academic_periods')
+                  ->onDelete('cascade');
         });
 
         // 2. Tabel Dosen Pembimbing (Relasi Many-to-Many dengan role)
         Schema::create('thesis_supervisors', function (Blueprint $table) {
-            $table->id();
-            $table->foreignUlid('thesis_id')->constrained()->cascadeOnDelete();
-            $table->foreignUlid('lecturer_id')->constrained()->cascadeOnDelete();
+            $table->char('id', 26)->primary(); // ULID
+            
+            $table->char('thesis_id', 26);
+            $table->char('lecturer_id', 26);
             
             // Role: 1 (Pembimbing Utama), 2 (Pembimbing Pendamping)
             $table->tinyInteger('role')->default(1); 
@@ -37,13 +51,27 @@ return new class extends Migration
             $table->enum('status', ['PENDING', 'ACCEPTED', 'DECLINED'])->default('PENDING');
             
             $table->timestamps();
-            $table->unique(['thesis_id', 'lecturer_id']); // Satu dosen ga boleh dobel di satu skripsi
+
+            // Unique Constraint: Satu dosen tidak boleh dobel di satu skripsi
+            $table->unique(['thesis_id', 'lecturer_id']); 
+
+            // Foreign Keys
+            $table->foreign('thesis_id')
+                  ->references('id')
+                  ->on('theses')
+                  ->onDelete('cascade');
+
+            $table->foreign('lecturer_id')
+                  ->references('id')
+                  ->on('lecturers')
+                  ->onDelete('cascade');
         });
 
         // 3. Tabel Log Bimbingan (Kartu Kontrol)
         Schema::create('thesis_logs', function (Blueprint $table) {
-            $table->ulid('id')->primary();
-            $table->foreignUlid('thesis_id')->constrained()->cascadeOnDelete();
+            $table->char('id', 26)->primary(); // ULID
+            
+            $table->char('thesis_id', 26);
             
             $table->date('guidance_date'); // Tanggal Bimbingan
             $table->text('notes'); // Catatan revisi/arahan
@@ -54,6 +82,12 @@ return new class extends Migration
             $table->enum('status', ['DRAFT', 'APPROVED'])->default('DRAFT');
             
             $table->timestamps();
+
+            // Foreign Keys
+            $table->foreign('thesis_id')
+                  ->references('id')
+                  ->on('theses')
+                  ->onDelete('cascade');
         });
     }
 

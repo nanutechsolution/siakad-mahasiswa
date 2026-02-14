@@ -3,10 +3,28 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class StudyProgram extends Model
 {
-    protected $fillable = ['faculty_id', 'code', 'name', 'degree', 'head_name', 'head_nip', 'total_credits', 'is_package'];
+    use SoftDeletes;
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+    protected $guarded = [];
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::ulid();
+            }
+            if (!empty($model->code)) {
+                $model->code = strtoupper($model->code);
+            }
+        });
+    }
 
     protected $casts = [
         'is_package' => 'boolean',

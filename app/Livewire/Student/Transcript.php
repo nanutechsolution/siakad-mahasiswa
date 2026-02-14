@@ -2,9 +2,10 @@
 
 namespace App\Livewire\Student;
 
-use Livewire\Component;
+use App\Enums\KrsStatus;
+use App\Models\StudyPlanDetail;
 use Illuminate\Support\Facades\Auth;
-use App\Models\StudyPlan;
+use Livewire\Component;
 
 class Transcript extends Component
 {
@@ -16,24 +17,23 @@ class Transcript extends Component
             return view('livewire.student.transcript', ['error' => true])->layout('layouts.student');
         }
 
-        // 1. Ambil Semua Matkul yang LULUS/APPROVED (Kumulatif)
-        $all_grades = StudyPlan::with(['classroom.course', 'academic_period'])
-            ->where('student_id', $student->id)
-            ->where('status', 'APPROVED') // Hanya nilai valid
+        // 1. Ambil Semua Detail Matkul yang status headernya APPROVED (Kumulatif)
+        $all_grades = StudyPlanDetail::whereHas('studyPlan', function ($q) use ($student) {
+                $q->where('student_id', $student->id)
+                  ->where('status', KrsStatus::APPROVED->value);
+            })
+            ->with(['courseClass.course', 'studyPlan.academicPeriod'])
+            ->whereNotNull('grade_point')
             ->get()
-            ->sortBy('academic_period.code'); // Urutkan dari semester awal
+            ->sortBy('studyPlan.academicPeriod.code');
 
         // 2. Hitung Statistik IPK
-        $total_sks = $all_grades->sum(fn($item) => $item->classroom->course->credit_total);
-        
-        $total_bobot = $all_grades->sum(function($item) {
-            return $item->classroom->course->credit_total * $item->grade_point;
-        });
+        $total_sks = $all_grades->sum(fn($item) => $item->courseClass->course->credit_total ?? 0);
+        $total_bobot = $all_grades->sum(fn($item) => ($item->courseClass->course->credit_total ?? 0) * ($item->grade_point ?? 0));
+        $ipk = $total_sks > 0 ? number_format($total_bobot / $total_sks, 2) : "0.00";
 
-        $ipk = $total_sks > 0 ? number_format($total_bobot / $total_sks, 2) : 0.00;
-
-        // 3. Grouping per Semester (Opsional, biar rapi di view)
-        $grouped_grades = $all_grades->groupBy('academic_period.name');
+        // 3. Grouping per Nama Semester
+        $grouped_grades = $all_grades->groupBy('studyPlan.academicPeriod.name');
 
         return view('livewire.student.transcript', [
             'student' => $student,

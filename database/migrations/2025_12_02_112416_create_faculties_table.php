@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('faculties', function (Blueprint $table) {
-            $table->id();
+            $table->char('id', 26)->primary();
             $table->string('code')->unique(); // Misal: FT (Fakultas Teknik)
             $table->string('name'); // Fakultas Teknik
             $table->string('dean_name')->nullable(); // Nama Dekan

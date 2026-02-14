@@ -14,13 +14,13 @@ class KrsValidate extends Component
     use WithPagination;
 
     public $search = '';
-    public $filter_status; // Default cari yang pending
+    public $filter_status; 
     public $active_period;
 
     // Untuk Modal Detail
-    public $selectedStudent;
-    public $studentPlans = [];
+    public $selectedPlan; // Sekarang kita simpan Model StudyPlan (Header)
     public $isModalOpen = false;
+    public $rejection_notes = '';
 
     public function mount()
     {
@@ -28,69 +28,77 @@ class KrsValidate extends Component
         $this->filter_status = KrsStatus::SUBMITTED->value;
     }
 
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
     public function render()
     {
-        $students = collect();
+        $plans = collect();
 
         if ($this->active_period) {
-            // CARI MAHASISWA YANG PUNYA KRS DI SEMESTER INI
-            $students = Student::with(['user', 'study_program'])
-                ->whereHas('study_plans', function ($q) {
-                    // Filter berdasarkan Status (Pending/Approved)
-                    // dan Semester Aktif
-                    $q->where('academic_period_id', $this->active_period->id)
-                        ->where('status', $this->filter_status); // <--- KUNCI PENCARIAN
-                })
+            $plans = StudyPlan::with(['student.user', 'student.studyProgram'])
+                ->where('academic_period_id', $this->active_period->id)
+                ->when($this->filter_status, fn($q) => $q->where('status', $this->filter_status))
                 ->when($this->search, function ($q) {
-                    $q->whereHas('user', fn($u) => $u->where('name', 'like', '%' . $this->search . '%'))
-                        ->orWhere('nim', 'like', '%' . $this->search . '%');
+                    $q->whereHas('student.user', fn($u) => $u->where('name', 'like', '%' . $this->search . '%'))
+                      ->orWhereHas('student', fn($s) => $s->where('nim', 'like', '%' . $this->search . '%'));
                 })
+                ->latest()
                 ->paginate(10);
         }
 
         return view('livewire.admin.academic.krs-validate', [
-            'students' => $students
+            'plans' => $plans
         ])->layout('layouts.admin');
     }
 
-    // TAMPILKAN DETAIL MATKUL MAHASISWA
-    public function showDetail($studentId)
+    public function showDetail($planId)
     {
-        $this->selectedStudent = Student::with('user')->find($studentId);
-
-        // Ambil semua rencana studi dia di semester ini
-        $this->studentPlans = StudyPlan::with(['classroom.course', 'classroom.schedules'])
-            ->where('student_id', $studentId)
-            ->where('academic_period_id', $this->active_period->id)
-            ->get();
+        $this->selectedPlan = StudyPlan::with([
+            'student.user', 
+            'details.courseClass.course', 
+            'details.courseClass.classSchedules'
+        ])->findOrFail($planId);
 
         $this->isModalOpen = true;
     }
 
-    // SETUJUI SEMUA MATKUL (ACC KRS)
     public function approve()
     {
-        if ($this->selectedStudent) {
-            // Update semua item jadi APPROVED
-            StudyPlan::where('student_id', $this->selectedStudent->id)
-                ->where('academic_period_id', $this->active_period->id)
-                ->update(['status' => KrsStatus::APPROVED]);
+        if ($this->selectedPlan) {
+            $this->selectedPlan->update([
+                'status' => KrsStatus::APPROVED,
+                'approved_at' => now(),
+                'notes' => null
+            ]);
 
-            session()->flash('message', 'KRS Mahasiswa ' . $this->selectedStudent->user->name . ' berhasil Disetujui!');
-            $this->isModalOpen = false;
+            session()->flash('message', 'KRS mahasiswa berhasil disetujui.');
+            $this->closeModal();
         }
     }
 
-    // TOLAK / KEMBALIKAN KE DRAFT
     public function reject()
     {
-        if ($this->selectedStudent) {
-            StudyPlan::where('student_id', $this->selectedStudent->id)
-                ->where('academic_period_id', $this->active_period->id)
-                ->update(['status' => KrsStatus::DRAFT]);
+        $this->validate([
+            'rejection_notes' => 'required|min:5'
+        ]);
 
-            session()->flash('message', 'KRS dikembalikan ke status Draft.');
-            $this->isModalOpen = false;
+        if ($this->selectedPlan) {
+            $this->selectedPlan->update([
+                'status' => KrsStatus::DRAFT, // Kembalikan ke draft agar mhs bisa edit
+                'notes' => $this->rejection_notes
+            ]);
+
+            session()->flash('message', 'KRS ditolak dan dikembalikan ke mahasiswa.');
+            $this->closeModal();
         }
+    }
+
+    public function closeModal()
+    {
+        $this->isModalOpen = false;
+        $this->reset(['selectedPlan', 'rejection_notes']);
     }
 }

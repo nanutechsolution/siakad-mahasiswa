@@ -1,121 +1,110 @@
-
-<div>
-    <x-slot name="header">Plotting Dosen Wali (PA)</x-slot>
+<div class="space-y-6 font-sans">
+    <x-slot name="header">Plotting Dosen Wali</x-slot>
 
     @if (session()->has('message'))
-        <div class="mb-6 p-4 rounded-lg bg-green-100 text-green-700 font-bold border border-green-200 sticky top-4 z-50 shadow-lg">
-            ✅ {{ session('message') }}
-        </div>
+    <div class="p-4 rounded-xl bg-green-100 text-green-700 font-bold border border-green-200 shadow-sm animate-fade-in-down">
+        {{ session('message') }}
+    </div>
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
-        <!-- FILTER (KIRI) -->
-        <div class="lg:col-span-1 space-y-6">
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                <h3 class="font-bold text-slate-800 dark:text-white mb-4">Filter Mahasiswa</h3>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Program Studi</label>
-                        <select wire:model.live="filter_prodi" class="w-full rounded-lg border-slate-300 text-sm dark:bg-slate-700 dark:text-white">
-                            <option value="">-- Pilih Prodi --</option>
-                            @foreach($prodis as $p)
-                                <option value="{{ $p->id }}">{{ $p->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+    <!-- Toolbar & Filters -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div>
+            <label class="block text-xs font-black uppercase text-slate-400 mb-2">Program Studi</label>
+            <select wire:model.live="filter_prodi" class="w-full rounded-xl border-slate-200 dark:bg-slate-900 dark:border-slate-700 dark:text-white text-sm focus:ring-brand-blue shadow-sm">
+                @foreach($prodis as $p)
+                <option value="{{ $p->id }}">{{ $p->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-black uppercase text-slate-400 mb-2">Angkatan</label>
+            <input type="number" wire:model.live="filter_angkatan" class="w-full rounded-xl border-slate-200 dark:bg-slate-900 dark:border-slate-700 dark:text-white text-sm focus:ring-brand-blue shadow-sm">
+        </div>
+        <div class="flex items-end pb-2">
+            <label class="inline-flex items-center cursor-pointer select-none">
+                <input type="checkbox" wire:model.live="show_has_advisor" class="rounded text-brand-blue h-5 w-5 border-slate-300">
+                <span class="ml-3 text-sm font-bold text-slate-600 dark:text-slate-300">Tampilkan yang sudah ada PA</span>
+            </label>
+        </div>
+    </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Angkatan</label>
-                        <input wire:model.live="filter_angkatan" type="number" class="w-full rounded-lg border-slate-300 text-sm dark:bg-slate-700 dark:text-white" placeholder="2024">
-                    </div>
-
-                    <div class="flex items-center gap-2 pt-2">
-                        <input type="checkbox" wire:model.live="show_has_advisor" id="showHas" class="rounded text-brand-blue">
-                        <label for="showHas" class="text-sm text-slate-700 dark:text-slate-300">Tampilkan yg sudah punya PA</label>
-                    </div>
-                </div>
+    <!-- Mass Action Bar (Floating Style) -->
+    @if(count($selected_students) > 0)
+    <div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-2xl px-4">
+        <div class="bg-slate-900 text-white rounded-3xl p-4 shadow-2xl flex flex-col md:flex-row items-center gap-4">
+            <div class="px-4 border-r border-slate-700 hidden md:block">
+                <p class="text-[10px] uppercase font-black text-slate-500">Terpilih</p>
+                <p class="text-lg font-black">{{ count($selected_students) }} <span class="text-xs">Mhs</span></p>
             </div>
-
-            <!-- PANEL EKSEKUSI (STICKY) -->
-            <div class="bg-brand-blue p-6 rounded-xl shadow-lg text-white sticky top-6">
-                <h3 class="font-bold text-lg mb-2">Aksi Massal</h3>
-                <p class="text-xs text-blue-200 mb-4">Terpilih: <strong>{{ count($selected_students) }}</strong> Mahasiswa</p>
-                
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-bold text-blue-200 mb-1">Pilih Dosen Wali</label>
-                        <select wire:model="selected_lecturer" class="w-full rounded-lg border-0 text-slate-800 text-sm">
-                            <option value="">-- Pilih Dosen --</option>
-                            @foreach($lecturers as $l)
-                                <option value="{{ $l->id }}">{{ $l->user->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('selected_lecturer') <span class="text-xs text-orange-300">{{ $message }}</span> @enderror
-                    </div>
-
-                    <button wire:click="save" wire:loading.attr="disabled" class="w-full py-2 bg-brand-gold text-brand-blue font-bold rounded-lg hover:bg-yellow-400 transition shadow-md">
-                        SIMPAN PLOTTING
-                    </button>
-
-                    @if($show_has_advisor)
-                    <button wire:click="detach" wire:confirm="Yakin ingin melepas Dosen Wali dari mahasiswa terpilih?" class="w-full py-2 bg-red-500/20 border border-red-400 text-red-100 font-bold rounded-lg hover:bg-red-500 hover:text-white transition text-xs">
-                        Lepas Dosen Wali
-                    </button>
-                    @endif
-                </div>
+            <div class="flex-1 w-full">
+                <select wire:model="selected_lecturer" class="w-full bg-slate-800 border-slate-700 text-white rounded-xl text-sm focus:ring-blue-500">
+                    <option value="">-- Pilih Dosen Wali --</option>
+                    @foreach($lecturers as $l)
+                    <option value="{{ $l->id }}">{{ $l->user->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <button wire:click="save" class="flex-1 md:flex-none px-6 py-2.5 bg-brand-blue text-white rounded-xl font-bold hover:bg-blue-600 transition text-sm">Plotting</button>
+                <button wire:click="detach" wire:confirm="Lepas dosen wali dari mahasiswa terpilih?" class="px-3 py-2.5 bg-red-500/20 text-red-400 rounded-xl hover:bg-red-500/30 transition">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
             </div>
         </div>
+    </div>
+    @endif
 
-        <!-- TABEL DATA (KANAN) -->
-        <div class="lg:col-span-3">
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 dark:bg-slate-700 text-slate-500 uppercase text-xs font-bold">
-                        <tr>
-                            <th class="px-4 py-3 w-10 text-center">
-                                <input type="checkbox" wire:model.live="select_all" class="rounded text-brand-blue focus:ring-brand-blue">
-                            </th>
-                            <th class="px-6 py-3">NIM</th>
-                            <th class="px-6 py-3">Nama Mahasiswa</th>
-                            <th class="px-6 py-3">Dosen Wali Saat Ini</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                        @forelse($students as $s)
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 {{ in_array($s->id, $selected_students) ? 'bg-blue-50 dark:bg-blue-900/20' : '' }}">
-                            <td class="px-4 py-3 text-center">
-                                <input type="checkbox" wire:model.live="selected_students" value="{{ $s->id }}" class="rounded text-brand-blue focus:ring-brand-blue">
-                            </td>
-                            <td class="px-6 py-3 font-mono font-bold text-brand-blue dark:text-brand-gold">{{ $s->nim }}</td>
-                            <td class="px-6 py-3 text-slate-800 dark:text-white">{{ $s->user->name }}</td>
-                            <td class="px-6 py-3">
-                                @if($s->academic_advisor)
-                                    <span class="text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                                        <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                                        {{ $s->academic_advisor->user->name }}
-                                    </span>
-                                @else
-                                    <span class="text-red-400 text-xs italic">Belum ada</span>
-                                @endif
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="4" class="px-6 py-12 text-center text-slate-500">
-                                Tidak ada data mahasiswa yang sesuai filter.
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-                <div class="p-4">
-                    {{ $students->links() }}
-                </div>
-            </div>
+    <!-- Data Table -->
+    <div class="bg-white dark:bg-slate-800 rounded-[2rem] shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 font-bold uppercase text-[10px] tracking-widest border-b border-slate-100 dark:border-slate-700">
+                    <tr>
+                        <th class="px-6 py-4 w-10 text-center">
+                            <input type="checkbox" wire:model.live="select_all" class="rounded text-brand-blue h-4 w-4">
+                        </th>
+                        <th class="px-6 py-4">Mahasiswa</th>
+                        <th class="px-6 py-4">Dosen Wali (Saat Ini)</th>
+                        <th class="px-6 py-4 text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                    @forelse($students as $student)
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" wire:model.live="selected_students" value="{{ $student->id }}" class="rounded text-brand-blue h-4 w-4">
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-slate-800 dark:text-white">{{ $student->user->name }}</div>
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{{ $student->nim }} &bull; {{ $student->entry_year }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            @if($student->academicAdvisor)
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                                    <span class="font-medium text-slate-700 dark:text-slate-300 text-xs">{{ $student->academicAdvisor->user->name }}</span>
+                                </div>
+                            @else
+                                <span class="text-slate-300 italic text-xs">Belum ada</span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase {{ $student->status == 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                {{ $student->status }}
+                            </span>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-slate-400 italic">Data mahasiswa tidak ditemukan.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-
+        <div class="p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700">
+            {{ $students->links() }}
+        </div>
     </div>
 </div>
-

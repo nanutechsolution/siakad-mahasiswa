@@ -12,6 +12,5 @@ class ClassMeeting extends Model
     protected $fillable = ['classroom_id', 'meeting_no', 'meeting_date', 'topic', 'is_open', 'token'];
     protected $casts = ['meeting_date' => 'date', 'is_open' => 'boolean'];
 
-    public function classroom() { return $this->belongsTo(Classroom::class); }
     public function attendances() { return $this->hasMany(Attendance::class); }
 }

@@ -12,18 +12,24 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('lecturers', function (Blueprint $table) {
-            $table->ulid('id')->primary();
-
-            $table->foreignUlid('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('study_program_id')->nullable()->constrained();
-
+            $table->char('id', 26)->primary(); // Pastikan Primary Key juga ULID
+            $table->char('user_id', 26); // Relasi ke Users
+            $table->char('study_program_id', 26)->nullable();
             $table->string('nidn')->nullable()->unique();
             $table->string('nip_internal')->nullable()->unique();
             $table->string('front_title')->nullable();
             $table->string('back_title')->nullable();
             $table->string('phone')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->foreign('study_program_id')
+                ->references('id')
+                ->on('study_programs')
+                ->onDelete('set null'); // Jika prodi hapus, dosen jangan hilang
 
+            $table->foreign('user_id')
+                ->references('id')
+                ->on('users')
+                ->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
         });

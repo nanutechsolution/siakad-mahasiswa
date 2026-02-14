@@ -100,6 +100,15 @@
                         Akademik
                     </p>
                     <div class="space-y-1">
+                        <!-- course-groups -->
+                        <x-admin-link href="{{ route('admin.academic.course-groups.index') }}" :active="request()->routeIs('admin.academic.course-groups.index')"
+                            label="Kelompok Mata Kuliah">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 00-2 2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </x-admin-link>
+                        <!-- courses -->
                         <x-admin-link href="{{ route('admin.academic.courses') }}" :active="request()->routeIs('admin.academic.courses')"
                             label="Mata Kuliah">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -107,6 +116,15 @@
                                     d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                             </svg>
                         </x-admin-link>
+                        <!-- course-curricums -->
+                        <x-admin-link href="{{ route('admin.academic.curriculum-courses.index') }}" :active="request()->routeIs('admin.academic.curriculum-courses.index')"
+                            label="Kurikulum & Matakuliah">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </x-admin-link>
+
                         <x-admin-link href="{{ route('admin.academic.import.course') }}" :active="request()->routeIs('admin.academic.import.course')"
                             label="Import Matakuliah">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -237,8 +255,8 @@
                                 Verifikasi Bayar
                                 @php $pendingCount = \App\Models\Payment::where('status', 'PENDING')->count(); @endphp
                                 @if ($pendingCount > 0)
-                                    <span
-                                        class="ml-auto bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{{ $pendingCount }}</span>
+                                <span
+                                    class="ml-auto bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{{ $pendingCount }}</span>
                                 @endif
                             </a>
 
@@ -292,11 +310,11 @@
                     </p>
                     <div class="space-y-1">
                         {{-- <x-admin-link href="{{ route('admin.pmb.dashboard') }}" :active="request()->routeIs('admin.pmb.dashboard')"
-                            label="Dashboard PMB">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
+                        label="Dashboard PMB">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
                         </x-admin-link> --}}
                         <x-admin-link href="{{ route('admin.pmb.registrants') }}" :active="request()->routeIs('admin.pmb.registrants')"
                             label="Seleksi Pendaftar">
@@ -306,25 +324,25 @@
                             </svg>
                         </x-admin-link>
                         {{-- <x-admin-link href="{{ route('admin.pmb.waves') }}" :active="request()->routeIs('admin.pmb.waves')"
-                            label="Pengaturan Gelombang">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
+                        label="Pengaturan Gelombang">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
                         </x-admin-link> --}}
                         {{-- <x-admin-link href="{{ route('admin.pmb.exams') }}" :active="request()->routeIs('admin.pmb.exams')"
-                            label="Soal Ujian PMB">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
+                        label="Soal Ujian PMB">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
                         </x-admin-link> --}}
                         {{-- <x-admin-link href="{{ route('admin.pmb.exam.recap') }}" :active="request()->routeIs('admin.pmb.exam.recap')"
-                            label="Rekap Nilai Ujian">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
+                        label="Rekap Nilai Ujian">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
                         </x-admin-link> --}}
                     </div>
                 </div>
@@ -394,7 +412,8 @@
 
                     <div class="flex min-w-0 flex-1 flex-col">
                         <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                            {{ Auth::user()->name }}</p>
+                            {{ Auth::user()->name }}
+                        </p>
                         <p class="truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">Administrator
                         </p>
                     </div>
@@ -430,19 +449,19 @@
                 <div class="flex items-center gap-4">
                     {{-- START: Semester Akademik Badge --}}
                     @php
-                        $globalActivePeriod = \App\Models\AcademicPeriod::where('is_active', true)->first();
+                    $globalActivePeriod = \App\Models\AcademicPeriod::where('is_active', true)->first();
                     @endphp
                     <div
                         class="flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-1.5 bg-slate-50 dark:bg-slate-700/50 rounded-full border border-slate-200 dark:border-slate-600 shadow-sm transition-all">
                         <span class="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2 flex-shrink-0">
                             @if ($globalActivePeriod)
-                                <span
-                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-blue opacity-75"></span>
-                                <span
-                                    class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-brand-blue"></span>
+                            <span
+                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-blue opacity-75"></span>
+                            <span
+                                class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-brand-blue"></span>
                             @else
-                                <span
-                                    class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-red-500"></span>
+                            <span
+                                class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-red-500"></span>
                             @endif
                         </span>
                         <span

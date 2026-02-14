@@ -4,41 +4,65 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str; // WAJIB: Import ini
+use Carbon\Carbon;
+use App\Models\Faculty;
 
 class StudyProgramSeeder extends Seeder
 {
     public function run(): void
     {
-        // DATA PRODI RESMI UNMARIS (SESUAI DIKTI)
-        $prodis = [
-            // Fakultas Teknik
-            ['code' => 'TI', 'name' => 'Teknik Informatika', 'degree' => 'S1'],
-            ['code' => 'TL', 'name' => 'Teknik Lingkungan', 'degree' => 'S1'],
-            
-            // Fakultas Ekonomi & Bisnis
-            ['code' => 'MI', 'name' => 'Manajemen Informatika', 'degree' => 'D3'],
-            ['code' => 'BD', 'name' => 'Bisnis Digital', 'degree' => 'S1'],
-            
-            // Fakultas Kesehatan
-            ['code' => 'ARS', 'name' => 'Administrasi Rumah Sakit', 'degree' => 'S1'],
-            ['code' => 'K3', 'name' => 'Keselamatan dan Kesehatan Kerja', 'degree' => 'S1'],
-            
-            // Fakultas Keguruan
-            ['code' => 'PTI', 'name' => 'Pendidikan Teknologi Informasi', 'degree' => 'S1'],
+        $now = Carbon::now();
+        
+        // Ambil Fakultas pertama untuk relasi (Opsional: sesuaikan logika Anda)
+        $faculty = Faculty::first(); 
+        $facultyId = $faculty ? $faculty->id : null;
+
+        $programs = [
+            [
+                'code' => 'TI',
+                'name' => 'Teknik Informatika',
+                'degree' => 'S1',
+                'is_package' => false,
+                'total_credits' => 144,
+            ],
+            [
+                'code' => 'SI',
+                'name' => 'Sistem Informasi',
+                'degree' => 'S1',
+                'is_package' => false,
+                'total_credits' => 144,
+            ],
+            [
+                'code' => 'MI',
+                'name' => 'Manajemen Informatika',
+                'degree' => 'D3',
+                'is_package' => true,
+                'total_credits' => 110,
+            ],
         ];
 
-        foreach ($prodis as $prodi) {
-            // Gunakan updateOrInsert agar tidak duplikat jika dijalankan berkali-kali
-            DB::table('study_programs')->updateOrInsert(
-                ['name' => $prodi['name'], 'degree' => $prodi['degree']], // Kunci pencarian
-                [
-                    'code' => $prodi['code'],
-                    'is_package' => 0,
-                    'total_credits' => $prodi['degree'] == 'D3' ? 110 : 144, // SKS Default
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
+        foreach ($programs as $prog) {
+            // 1. Cek data existing by Code
+            $existing = DB::table('study_programs')->where('code', $prog['code'])->first();
+
+            $payload = array_merge($prog, [
+                'faculty_id' => $facultyId,
+                'updated_at' => $now,
+            ]);
+
+            if ($existing) {
+                // UPDATE: ID jangan disentuh
+                DB::table('study_programs')
+                    ->where('id', $existing->id)
+                    ->update($payload);
+            } else {
+                // INSERT: Generate ULID manual disini!
+                DB::table('study_programs')->insert(array_merge($payload, [
+                    'id' => (string) Str::ulid(),
+                    'created_at' => $now,
+                ]));
+            }
         }
     }
 }

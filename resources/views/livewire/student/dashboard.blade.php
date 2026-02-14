@@ -1,551 +1,306 @@
-<div class="mx-auto max-w-7xl space-y-6 md:space-y-8 font-sans">
-    <!-- ONBOARDING MODAL (Hanya Muncul Sekali seumur hidup) -->
-    @if ($show_onboarding)
-        <div class="fixed inset-0 z-[99] flex items-center justify-center p-4" x-data>
-            <!-- Backdrop Blur Gelap -->
-            <div class="absolute inset-0 bg-slate-900/90 backdrop-blur-xl"></div>
-
-            <!-- Confetti Canvas -->
-            <canvas id="confetti-canvas" class="absolute inset-0 pointer-events-none z-0"></canvas>
-
-            <!-- Card Content -->
-            <div
-                class="relative z-10 w-full max-w-lg bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden text-center animate-fade-in-up">
-
-                <!-- Header Image / Decoration -->
-                <div
-                    class="h-40 bg-gradient-to-br from-brand-blue to-indigo-600 relative flex items-center justify-center overflow-hidden">
-                    <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20">
-                    </div>
-                    <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-brand-gold/30 rounded-full blur-3xl"></div>
-
-                    <div
-                        class="relative z-10 bg-white/10 backdrop-blur-md p-4 rounded-full ring-4 ring-white/20 shadow-xl">
-                        <svg class="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                            stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="p-8 md:p-10">
-                    <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-2">Selamat Datang! 🎓</h2>
-                    <p class="text-slate-500 dark:text-slate-400 text-lg leading-relaxed">
-                        Selamat! Anda kini resmi menjadi bagian dari keluarga besar <strong>UNMARIS</strong>.
-                    </p>
-
-                    <!-- NIM Reveal -->
-                    <div
-                        class="my-8 bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Nomor Induk Mahasiswa
-                            (NIM) Anda</p>
-                        <p class="text-4xl font-black text-brand-blue dark:text-brand-gold tracking-wider select-all cursor-pointer"
-                            onclick="navigator.clipboard.writeText('{{ $student->nim }}'); alert('NIM disalin!')">
-                            {{ $student->nim }}
-                        </p>
-                        <p class="text-[10px] text-slate-400 mt-2">*Gunakan NIM ini untuk login selanjutnya (Password
-                            tetap sama).</p>
-                    </div>
-
-                    <!-- Next Step -->
-                    <div class="space-y-3">
-                        <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Langkah Selanjutnya:</p>
-                        <button wire:click="dismissOnboarding"
-                            class="w-full py-4 bg-brand-blue text-white rounded-xl font-bold text-lg shadow-xl shadow-blue-900/20 hover:bg-blue-800 hover:scale-[1.02] transition-all">
-                            Mulai Isi KRS Sekarang &rarr;
-                        </button>
-                    </div>
-                </div>
-
-            </div>
+<div class="space-y-8 font-sans">
+    
+    <!-- 1. Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-black text-slate-800 dark:text-white tracking-tight">
+                {{ $greeting }}, <span class="text-brand-blue">{{ explode(' ', $student->user->name ?? 'Mahasiswa')[0] }}</span>! 👋
+            </h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-1 text-sm font-medium">
+                {{ $student->nim ?? '-' }} &bull; {{ $student->studyProgram->name ?? 'Program Studi' }}
+            </p>
         </div>
-
-        <!-- Script Confetti (Efek Pesta) -->
-        <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-        <script>
-            // Jalankan efek meledak saat modal muncul
-            var duration = 3 * 1000;
-            var animationEnd = Date.now() + duration;
-            var defaults = {
-                startVelocity: 30,
-                spread: 360,
-                ticks: 60,
-                zIndex: 100
-            };
-
-            function randomInRange(min, max) {
-                return Math.random() * (max - min) + min;
-            }
-
-            var interval = setInterval(function() {
-                var timeLeft = animationEnd - Date.now();
-
-                if (timeLeft <= 0) {
-                    return clearInterval(interval);
-                }
-
-                var particleCount = 50 * (timeLeft / duration);
-                // since particles fall down, start a bit higher than random
-                confetti(Object.assign({}, defaults, {
-                    particleCount,
-                    origin: {
-                        x: randomInRange(0.1, 0.3),
-                        y: Math.random() - 0.2
-                    }
-                }));
-                confetti(Object.assign({}, defaults, {
-                    particleCount,
-                    origin: {
-                        x: randomInRange(0.7, 0.9),
-                        y: Math.random() - 0.2
-                    }
-                }));
-            }, 250);
-        </script>
-    @endif
-    <!-- ERROR STATE -->
-    @if (!$student)
-        <div class="rounded-3xl border border-red-500/20 bg-red-500/10 p-8 text-center backdrop-blur-md">
-            <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-red-500 mb-4">
-                <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        
+        <!-- Periode Aktif Badge -->
+        @if($active_period)
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl flex items-center gap-3 shadow-sm">
+            <div class="h-8 w-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
             </div>
-            <h3 class="text-xl font-bold text-slate-800 dark:text-white">Akun Belum Terhubung</h3>
-            <p class="text-slate-500 dark:text-slate-400 mt-2">Data akademik tidak ditemukan. Mohon hubungi BAAK.</p>
-        </div>
-    @else
-        <!-- 1. HERO & STATS ROW -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            <!-- WELCOME CARD -->
-            <div
-                class="lg:col-span-8 relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] bg-slate-900 p-6 md:p-8 text-white shadow-2xl group">
-                <!-- Background FX -->
-                <div
-                    class="absolute right-0 top-0 h-full w-full bg-gradient-to-l from-brand-blue/80 to-transparent opacity-60">
-                </div>
-                <div
-                    class="absolute -right-20 -top-40 h-96 w-96 rounded-full bg-brand-gold/10 blur-[80px] group-hover:bg-brand-gold/20 transition-all duration-700">
-                </div>
-
-                <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-8">
-                    <!-- Avatar -->
-                    <div class="relative">
-                        <div
-                            class="h-20 w-20 md:h-24 md:w-24 rounded-3xl bg-gradient-to-br from-brand-gold to-orange-500 p-[3px] shadow-[0_0_30px_rgba(251,191,36,0.3)]">
-                            <div
-                                class="h-full w-full rounded-[20px] md:rounded-[22px] bg-slate-900 flex items-center justify-center text-3xl md:text-4xl font-extrabold text-brand-gold overflow-hidden">
-                                @if ($student->photo)
-                                    <img src="{{ asset('storage/' . $student->photo) }}"
-                                        class="h-full w-full object-cover">
-                                @else
-                                    {{ substr(Auth::user()->name, 0, 1) }}
-                                @endif
-                            </div>
-                        </div>
-                        <div
-                            class="absolute -bottom-2 -right-2 rounded-xl border-4 border-slate-900 bg-green-500 px-2 py-0.5 md:px-3 md:py-1 text-[8px] md:text-[10px] font-black tracking-wider text-slate-900 shadow-sm uppercase">
-                            {{ $student->status == 'A' ? 'AKTIF' : 'NON-AKTIF' }}
-                        </div>
-                    </div>
-
-                    <div class="space-y-1 w-full">
-                        <p
-                            class="text-blue-200 font-bold tracking-widest text-[10px] md:text-xs uppercase mb-1 flex items-center gap-2">
-                            <span class="h-1 w-6 md:w-8 bg-brand-gold rounded-full"></span>
-                            {{ $greeting }}
-                        </p>
-                        <h1 class="text-2xl md:text-5xl font-black tracking-tight leading-tight truncate">
-                            {{ explode(' ', Auth::user()->name)[0] }}<span class="text-brand-gold">.</span>
-                        </h1>
-                        <div
-                            class="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm text-slate-300 pt-2 font-medium">
-                            <span
-                                class="bg-white/10 px-2 py-1 md:px-3 rounded-full border border-white/5 font-mono tracking-wider">{{ $student->nim }}</span>
-                            <span class="hidden md:inline text-slate-500">•</span>
-                            <span
-                                class="truncate max-w-[200px] md:max-w-none">{{ $student->study_program?->name }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- IPK CHART CARD (DINAMIS) -->
-            <div
-                class="lg:col-span-4 rounded-[2rem] md:rounded-[2.5rem] bg-white dark:bg-slate-800 p-6 shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden flex flex-col justify-center items-center">
-                <h4
-                    class="text-slate-500 dark:text-slate-400 font-bold text-xs tracking-widest uppercase absolute top-6 left-6">
-                    Performa</h4>
-
-                <!-- Chart -->
-                <div id="gpaChart" class="-mt-4 scale-90 md:scale-100"></div>
-
-                <div class="absolute bottom-6 text-center">
-                    <p class="text-xs text-slate-400 font-medium">IPK KUMULATIF</p>
-                    <!-- DATA DINAMIS IPK -->
-                    <p class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white">
-                        {{ number_format($ipk, 2) }} <span class="text-sm md:text-base font-medium text-slate-400">/
-                            4.00</span>
-                    </p>
-                </div>
+            <div>
+                <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Periode Aktif</p>
+                <p class="text-sm font-bold text-slate-800 dark:text-white">{{ $active_period->name }}</p>
             </div>
         </div>
+        @endif
+    </div>
 
-        <!-- 2. MAIN BENTO GRID -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            <!-- LEFT COL -->
-            <div class="lg:col-span-2 space-y-6">
-
-                <!-- JADWAL HARI INI -->
-                <div
-                    class="rounded-[2rem] md:rounded-[2.5rem] bg-white dark:bg-slate-800 p-6 md:p-8 shadow-sm border border-slate-100 dark:border-slate-700">
-                    <div class="flex items-center justify-between mb-6 md:mb-8">
-                        <div>
-                            <h3 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                                Today's Schedule</h3>
-                            <p class="text-slate-500 font-medium mt-1 text-sm md:text-base">
-                                {{ \Carbon\Carbon::now()->isoFormat('dddd, D MMMM Y') }}
-                            </p>
-                        </div>
-                        @if ($jadwal_hari_ini->isNotEmpty())
-                            <div
-                                class="inline-flex items-center gap-2 rounded-full bg-brand-blue/10 px-3 py-1.5 md:px-4 md:py-2 text-[10px] md:text-xs font-extrabold text-brand-blue dark:bg-brand-blue dark:text-white">
-                                <span class="relative flex h-2 w-2 md:h-2.5 md:w-2.5">
-                                    <span
-                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                    <span
-                                        class="relative inline-flex rounded-full h-2 w-2 md:h-2.5 md:w-2.5 bg-blue-500 dark:bg-white"></span>
-                                </span>
-                                LIVE
-                            </div>
-                        @endif
-                    </div>
-
-                    @if ($jadwal_hari_ini->isEmpty())
-                        <div
-                            class="flex flex-col items-center justify-center py-8 md:py-12 text-center rounded-3xl bg-slate-50 dark:bg-slate-900/50 border-2 border-dashed border-slate-200 dark:border-slate-700">
-                            <div
-                                class="h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mb-4 dark:bg-slate-800 dark:text-indigo-400 shadow-sm">
-                                <svg class="w-6 h-6 md:w-8 md:h-8" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <h4 class="text-base md:text-lg font-bold text-slate-800 dark:text-white">No Classes Today
-                            </h4>
-                            <p class="text-slate-500 font-medium text-xs md:text-sm mt-1">Waktunya istirahat atau nugas!
-                            </p>
-                        </div>
-                    @else
-                        <div
-                            class="relative space-y-6 pl-6 border-l-2 border-slate-100 dark:border-slate-700 ml-2 md:ml-4">
-                            @foreach ($jadwal_hari_ini as $sch)
-                                <div class="relative group">
-                                    <div
-                                        class="absolute -left-[29px] md:-left-[31px] top-6 h-3 w-3 md:h-4 md:w-4 rounded-full border-[3px] border-white bg-brand-blue shadow-md dark:border-slate-800 transition-all group-hover:scale-125">
-                                    </div>
-
-                                    <div
-                                        class="rounded-3xl bg-slate-50 p-4 md:p-5 transition-all hover:-translate-y-1 hover:shadow-lg dark:bg-slate-700/30 group-hover:bg-brand-blue/5 dark:group-hover:bg-brand-blue/10">
-                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                            <div class="flex-1">
-                                                <div class="flex items-center gap-3 mb-2">
-                                                    <span
-                                                        class="inline-block rounded-lg bg-white px-2 py-1 md:px-3 text-[10px] md:text-xs font-extrabold text-slate-700 shadow-sm dark:bg-slate-800 dark:text-white">
-                                                        {{ \Carbon\Carbon::parse($sch->start_time)->format('H:i') }} -
-                                                        {{ \Carbon\Carbon::parse($sch->end_time)->format('H:i') }}
-                                                    </span>
-                                                    <span
-                                                        class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-                                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24"
-                                                            stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2"
-                                                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2"
-                                                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        </svg>
-                                                        {{ $sch->room_name }}
-                                                    </span>
-                                                </div>
-                                                <h4
-                                                    class="text-lg md:text-xl font-black text-slate-800 dark:text-white group-hover:text-brand-blue transition-colors">
-                                                    {{ $sch->course_name }}
-                                                </h4>
-                                                <p
-                                                    class="text-xs md:text-sm font-medium text-slate-500 mt-1 flex items-center gap-2">
-                                                    <span
-                                                        class="h-5 w-5 md:h-6 md:w-6 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-[10px]">👨‍🏫</span>
-                                                    {{ $sch->lecturer_name }}
-                                                </p>
-                                            </div>
-                                            <div class="shrink-0">
-                                                <div
-                                                    class="text-center rounded-2xl bg-white px-3 py-2 md:px-4 md:py-3 shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-600">
-                                                    <p
-                                                        class="text-[8px] md:text-[10px] text-slate-400 font-bold uppercase">
-                                                        Kelas</p>
-                                                    <p
-                                                        class="text-base md:text-lg font-black text-brand-blue dark:text-brand-gold">
-                                                        {{ $sch->class_name }}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-
-                <!-- SKS PROGRESS CHART (DINAMIS SESUAI JENJANG) -->
-                <div
-                    class="rounded-[2rem] md:rounded-[2.5rem] bg-brand-blue text-white p-6 md:p-8 shadow-xl relative overflow-hidden">
-                    <div class="absolute -right-10 -bottom-10 h-60 w-60 rounded-full bg-brand-gold/20 blur-[60px]">
-                    </div>
-
-                    <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                        <div class="flex-1">
-                            <h3 class="text-lg md:text-xl font-black">Progress Studi</h3>
-                            <p class="text-blue-200 text-xs md:text-sm mt-1 font-medium">
-                                Jenjang {{ $student->study_program->degree ?? 'S1' }} (Min. {{ $target_sks }} SKS)
-                            </p>
-
-                            <div class="mt-4 md:mt-6">
-                                <!-- Data SKS Kumulatif vs Target -->
-                                <div class="flex items-end gap-2 mb-2">
-                                    <p class="text-3xl md:text-4xl font-black text-brand-gold tracking-tight">
-                                        {{ $total_sks_kumulatif }}
-                                    </p>
-                                    <span class="text-base md:text-lg text-white font-bold opacity-60 mb-1">/
-                                        {{ $target_sks }} SKS</span>
-                                </div>
-
-                                <!-- Custom Progress Bar -->
-                                @php
-                                    $percent = ($total_sks_kumulatif / $target_sks) * 100;
-                                    $percent = $percent > 100 ? 100 : $percent;
-                                @endphp
-                                <div class="w-full bg-black/20 rounded-full h-3 overflow-hidden backdrop-blur-sm">
-                                    <div class="bg-brand-gold h-full rounded-full shadow-[0_0_10px_rgba(255,215,0,0.5)] transition-all duration-1000 ease-out"
-                                        style="width: {{ $percent }}%"></div>
-                                </div>
-                                <p class="mt-2 text-[10px] text-blue-200 font-mono">
-                                    {{ number_format($percent, 1) }}% Menuju Kelulusan
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Bar Chart Sejarah SKS -->
-                        <div class="w-full md:w-1/2 h-24 md:h-32" id="sksChart"></div>
-                    </div>
-                </div>
-
+    <!-- 2. Onboarding Alert (Jika Mahasiswa Baru) -->
+    @if($show_onboarding)
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+        <div class="absolute right-0 top-0 h-full w-1/3 bg-white/10 skew-x-12 transform origin-bottom-left"></div>
+        <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+                <h3 class="text-xl font-bold mb-1">Selamat Datang di SIAKAD! 🚀</h3>
+                <p class="text-blue-100 text-sm max-w-xl">
+                    Lengkapi biodata dan profil Anda untuk memulai perkuliahan. Pastikan data diri sesuai dengan KTP/Ijazah.
+                </p>
             </div>
-
-            <!-- RIGHT COL -->
-            <div class="space-y-6">
-
-                <!-- QUICK ACTIONS -->
-                <div class="grid grid-cols-1 gap-4">
-                    <a href="{{ route('student.krs') }}"
-                        class="group relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-6 text-center text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl">
-                        <div
-                            class="absolute inset-0 bg-brand-blue opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                        </div>
-                        <div class="relative z-10 flex items-center justify-between">
-                            <div class="text-left">
-                                <p class="font-black text-lg">KRS Online</p>
-                                <p class="text-xs text-slate-400 group-hover:text-blue-200">Ambil matkul semester ini
-                                </p>
-                            </div>
-                            <div
-                                class="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                                <svg class="h-5 w-5 text-brand-gold" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="3">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                                </svg>
-                            </div>
-                        </div>
-                    </a>
-
-                    <a href="#"
-                        class="group relative overflow-hidden rounded-[2rem] bg-white p-6 text-center shadow-sm border border-slate-100 transition-all hover:scale-[1.02] hover:border-brand-gold hover:shadow-lg dark:bg-slate-800 dark:border-slate-700">
-                        <div class="relative z-10 flex items-center justify-between">
-                            <div class="text-left">
-                                <p class="font-black text-lg text-slate-800 dark:text-white">Cetak KHS</p>
-                                <p class="text-xs text-slate-500">Lihat hasil studi</p>
-                            </div>
-                            <div
-                                class="h-10 w-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-brand-gold/10 transition-colors dark:bg-slate-700">
-                                <svg class="h-5 w-5 text-slate-400 group-hover:text-brand-gold" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- FINANCE WIDGET (DINAMIS) -->
-                <div class="relative overflow-hidden rounded-[2.5rem] bg-slate-900 p-6 text-white shadow-lg flex items-center justify-between group cursor-pointer hover:scale-[1.01] transition-transform"
-                    onclick="window.location='{{ route('student.bills') }}'">
-
-                    @if ($tagihan_belum_bayar > 0)
-                        <!-- JIKA ADA HUTANG (MERAH) -->
-                        <div class="absolute inset-0 bg-gradient-to-r from-red-600 to-orange-600 opacity-90"></div>
-                        <div
-                            class="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-white/20 blur-2xl group-hover:bg-white/30 transition-all animate-pulse">
-                        </div>
-
-                        <div class="relative z-10 flex items-center gap-4">
-                            <div
-                                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
-                                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <p class="text-xs font-bold text-red-100 uppercase tracking-wider">Tagihan Belum Lunas
-                                </p>
-                                <p class="text-lg font-black">Rp
-                                    {{ number_format($tagihan_belum_bayar, 0, ',', '.') }}</p>
-                            </div>
-                        </div>
-                    @else
-                        <!-- JIKA LUNAS (HIJAU) -->
-                        <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-teal-600 opacity-90"></div>
-                        <div
-                            class="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-white/20 blur-2xl group-hover:bg-white/30 transition-all">
-                        </div>
-
-                        <div class="relative z-10 flex items-center gap-4">
-                            <div
-                                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
-                                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <p class="text-xs font-bold text-green-100 uppercase tracking-wider">Status Keuangan
-                                </p>
-                                <p class="text-lg font-black">SPP LUNAS</p>
-                            </div>
-                        </div>
-                    @endif
-
-                    
-
-                    <div class="relative z-10">
-                        <svg class="h-6 w-6 text-white/50 group-hover:text-white group-hover:translate-x-1 transition-all"
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </div>
-                </div>
-
-                
-
-            </div>
+            <button wire:click="dismissOnboarding" class="px-5 py-2.5 bg-white text-blue-700 font-bold rounded-xl text-sm shadow-md hover:bg-blue-50 transition">
+                Saya Mengerti
+            </button>
         </div>
+    </div>
     @endif
-</div>
 
-<!-- Script Chart Modern -->
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<script>
-    document.addEventListener('livewire:navigated', () => {
+    <!-- 3. Statistik Utama (Cards) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- IPK -->
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-full">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Indeks Prestasi (IPK)</p>
+                    <h3 class="text-3xl font-black text-slate-800 dark:text-white mt-1">{{ number_format($ipk, 2) }}</h3>
+                </div>
+                <div class="p-2 bg-yellow-100 text-yellow-600 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 w-full bg-slate-100 rounded-full h-1.5">
+                <div class="bg-yellow-400 h-1.5 rounded-full" style="width: {{ ($ipk/4)*100 }}%"></div>
+            </div>
+        </div>
 
-        // Ambil Data Dinamis dari Controller
-        const ipk = @json($ipk);
-        const sksValues = @json($sks_history_values);
-        const sksLabels = @json($sks_history_labels);
+        <!-- SKS Semester Ini -->
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-full">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">SKS Semester Ini</p>
+                    <h3 class="text-3xl font-black text-slate-800 dark:text-white mt-1">{{ $total_sks_semester }}</h3>
+                </div>
+                <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 text-xs font-medium text-slate-500">
+                Max 24 SKS
+            </div>
+        </div>
 
-        // 1. SKS CHART (Bar Chart Minimalis)
-        var optionsSKS = {
-            series: [{
-                name: 'SKS',
-                data: sksValues.length > 0 ? sksValues : [0]
-            }],
-            chart: {
+        <!-- Total SKS Kumulatif -->
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-full">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total SKS Lulus</p>
+                    <h3 class="text-3xl font-black text-slate-800 dark:text-white mt-1">{{ $total_sks_kumulatif }} <span class="text-sm font-medium text-slate-400 text-lg">/ {{ $target_sks }}</span></h3>
+                </div>
+                <div class="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 w-full bg-slate-100 rounded-full h-1.5">
+                <div class="bg-purple-500 h-1.5 rounded-full" style="width: {{ min(($total_sks_kumulatif / $target_sks) * 100, 100) }}%"></div>
+            </div>
+        </div>
+
+        <!-- Tagihan -->
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-full">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tagihan Belum Bayar</p>
+                    <h3 class="text-2xl font-black {{ $tagihan_belum_bayar > 0 ? 'text-red-500' : 'text-green-500' }} mt-1">
+                        Rp {{ number_format($tagihan_belum_bayar, 0, ',', '.') }}
+                    </h3>
+                </div>
+                <div class="p-2 {{ $tagihan_belum_bayar > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600' }} rounded-lg">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+            </div>
+            @if($tagihan_belum_bayar > 0)
+            <a href="#" class="mt-4 text-xs font-bold text-red-500 hover:underline flex items-center gap-1">
+                Bayar Sekarang &rarr;
+            </a>
+            @else
+            <p class="mt-4 text-xs font-bold text-green-500 flex items-center gap-1">
+                Lunas & Aman &check;
+            </p>
+            @endif
+        </div>
+    </div>
+
+    <!-- 4. Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left Column: Jadwal Hari Ini -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Jadwal Section -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <span class="w-2 h-6 bg-brand-blue rounded-full"></span>
+                        Jadwal Kuliah Hari Ini
+                    </h3>
+                    <span class="text-sm font-medium text-slate-500 bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full">
+                        {{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}
+                    </span>
+                </div>
+
+                @if(count($jadwal_hari_ini) > 0)
+                    <div class="space-y-4">
+                        @foreach($jadwal_hari_ini as $jadwal)
+                        <div class="flex group relative overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-blue-200 transition-all bg-slate-50/50 dark:bg-slate-700/30">
+                            <!-- Time Bar -->
+                            <div class="w-24 bg-white dark:bg-slate-800 flex flex-col justify-center items-center border-r border-slate-100 dark:border-slate-600 p-4">
+                                <span class="text-lg font-black text-slate-800 dark:text-white">{{ \Carbon\Carbon::parse($jadwal->start_time)->format('H:i') }}</span>
+                                <span class="text-xs text-slate-400 font-medium">s/d {{ \Carbon\Carbon::parse($jadwal->end_time)->format('H:i') }}</span>
+                            </div>
+                            
+                            <!-- Class Info -->
+                            <div class="flex-1 p-4 flex flex-col justify-center">
+                                <h4 class="font-bold text-slate-800 dark:text-white text-lg group-hover:text-brand-blue transition-colors">
+                                    {{ $jadwal->course_name }}
+                                </h4>
+                                <div class="flex items-center gap-3 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                    <span class="flex items-center gap-1 bg-white dark:bg-slate-600 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-500">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                                        Kelas {{ $jadwal->class_name }}
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                        {{ $jadwal->room }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Action -->
+                            <div class="w-16 bg-blue-50 dark:bg-slate-700 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <a href="#" class="p-2 bg-brand-blue text-white rounded-lg shadow-lg hover:scale-110 transition">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                </a>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+                        <div class="bg-slate-50 p-4 rounded-full mb-3">
+                            <svg class="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h4 class="text-slate-900 font-bold">Tidak ada jadwal kuliah</h4>
+                        <p class="text-slate-500 text-sm">Hari ini kamu bebas! Manfaatkan untuk istirahat atau belajar mandiri.</p>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Pengumuman Section -->
+            @if(count($announcements) > 0)
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                    <span class="w-2 h-6 bg-orange-500 rounded-full"></span>
+                    Pengumuman Terbaru
+                </h3>
+                <div class="space-y-4">
+                    @foreach($announcements as $info)
+                    <div class="p-4 rounded-xl bg-orange-50 dark:bg-slate-700/50 border border-orange-100 dark:border-slate-600">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-slate-800 dark:text-white text-sm">{{ $info->title }}</h4>
+                            <span class="text-[10px] text-slate-400">{{ $info->created_at->diffForHumans() }}</span>
+                        </div>
+                        <p class="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">{{ $info->content }}</p>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+        </div>
+
+        <!-- Right Column: Grafik & Quick Links -->
+        <div class="space-y-6">
+            
+            <!-- Chart Section -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-6">Riwayat SKS</h3>
+                <div class="relative h-64">
+                    <canvas id="sksChart"></canvas>
+                </div>
+                <div class="mt-4 text-center">
+                    <p class="text-xs text-slate-400">Total SKS yang diambil per semester</p>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-4">Akses Cepat</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <a href="#" class="p-4 bg-blue-50 dark:bg-slate-700 rounded-xl text-center hover:bg-blue-100 transition group">
+                        <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">📄</span>
+                        <span class="text-xs font-bold text-slate-700 dark:text-white">KRS Online</span>
+                    </a>
+                    <a href="#" class="p-4 bg-purple-50 dark:bg-slate-700 rounded-xl text-center hover:bg-purple-100 transition group">
+                        <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">🎓</span>
+                        <span class="text-xs font-bold text-slate-700 dark:text-white">Transkrip</span>
+                    </a>
+                    <a href="#" class="p-4 bg-green-50 dark:bg-slate-700 rounded-xl text-center hover:bg-green-100 transition group">
+                        <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">💰</span>
+                        <span class="text-xs font-bold text-slate-700 dark:text-white">Keuangan</span>
+                    </a>
+                    <a href="#" class="p-4 bg-orange-50 dark:bg-slate-700 rounded-xl text-center hover:bg-orange-100 transition group">
+                        <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">📅</span>
+                        <span class="text-xs font-bold text-slate-700 dark:text-white">Kalender</span>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ChartJS Script -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            const ctx = document.getElementById('sksChart');
+            
+            new Chart(ctx, {
                 type: 'bar',
-                height: 100,
-                sparkline: {
-                    enabled: true
-                }
-            },
-            plotOptions: {
-                bar: {
-                    borderRadius: 4,
-                    columnWidth: '60%'
-                }
-            },
-            colors: ['#ffffff'], // Putih karena background biru
-            tooltip: {
-                theme: 'dark',
-                fixed: {
-                    enabled: false
+                data: {
+                    labels: @json($sks_history_labels),
+                    datasets: [{
+                        label: 'SKS Diambil',
+                        data: @json($sks_history_values),
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 2,
+                        borderRadius: 4,
+                        barThickness: 20
+                    }]
                 },
-                x: {
-                    show: false
-                }
-            },
-        };
-        var chartSKS = new ApexCharts(document.querySelector("#sksChart"), optionsSKS);
-        chartSKS.render();
-
-        // 2. IPK CHART (Radial Bar)
-        var percentage = (ipk / 4.0) * 100;
-
-        var optionsIPK = {
-            series: [percentage],
-            chart: {
-                height: 140,
-                type: 'radialBar',
-                fontFamily: 'Plus Jakarta Sans, sans-serif'
-            },
-            plotOptions: {
-                radialBar: {
-                    hollow: {
-                        size: '55%'
-                    },
-                    track: {
-                        background: '#f1f5f9',
-                        strokeWidth: '100%'
-                    },
-                    dataLabels: {
-                        name: {
-                            show: false
-                        },
-                        value: {
-                            fontSize: '16px',
-                            fontWeight: 900,
-                            color: '#334155',
-                            offsetY: 6,
-                            formatter: function(val) {
-                                return ipk.toFixed(2);
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: false
                             }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
                         }
                     }
                 }
-            },
-            colors: ['#FFD700'], // Brand Gold
-            stroke: {
-                lineCap: 'round'
-            },
-        };
-        var chartIPK = new ApexCharts(document.querySelector("#gpaChart"), optionsIPK);
-        chartIPK.render();
-    });
-</script>
+            });
+        });
+    </script>
+</div>

@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use App\Models\AcademicPeriod;
 use App\Models\StudyPlan;
+use App\Models\StudyPlanDetail; // Import Model Detail
 use App\Models\EdomResponse;
 
 class KhsIndex extends Component
@@ -21,41 +22,44 @@ class KhsIndex extends Component
             
             // 1. Cari Kelas yang SUDAH DINILAI tapi BELUM DI-EDOM
             
-            // A. Ambil List ID Kelas yang sudah ada nilainya (Grade Letter Not Null)
-            // Hanya matkul yang sudah dinilai dosen yang wajib dievaluasi
-            $graded_classes = StudyPlan::where('student_id', $student->id)
-                ->where('academic_period_id', $active_period->id)
-                ->where('status', 'APPROVED')
-                ->whereNotNull('grade_letter') // <--- KUNCI LOGIC BARU: Hanya yg sudah ada nilai
-                ->pluck('classroom_id');
+            // Ambil List ID Kelas (course_class_id) dari tabel DETAIL
+            $graded_classes = StudyPlanDetail::whereHas('studyPlan', function ($q) use ($student, $active_period) {
+                    $q->where('student_id', $student->id)
+                      ->where('academic_period_id', $active_period->id)
+                      ->where('status', 'approved');
+                })
+                ->whereNotNull('grade_letter') 
+                ->pluck('course_class_id');
 
-            // B. Hitung berapa dari kelas tersebut yang sudah diisi EDOM-nya
+            // Hitung EDOM (Sesuaikan kolom classroom_id -> course_class_id jika tabel edom juga di-refactor)
             $filled_count = EdomResponse::where('student_id', $student->id)
                 ->where('academic_period_id', $active_period->id)
-                ->whereIn('classroom_id', $graded_classes)
-                ->distinct('classroom_id')
-                ->count('classroom_id');
+                ->whereIn('course_class_id', $graded_classes)
+                ->distinct('course_class_id')
+                ->count('course_class_id');
 
-            // C. Hutang = Total Kelas Bernilai - Total Sudah Diisi
             $this->edom_pending_count = $graded_classes->count() - $filled_count;
         }
 
         // 2. Load Riwayat Semester (History KHS)
         $history_periods = AcademicPeriod::whereHas('study_plans', function($q) use ($student) {
                 $q->where('student_id', $student->id)
-                  ->where('status', 'APPROVED');
+                  ->where('status', 'approved');
             })
             ->orderBy('code', 'desc')
             ->get()
             ->map(function($period) use ($student) {
-                $plans = StudyPlan::with('classroom.course')
-                    ->where('student_id', $student->id)
-                    ->where('academic_period_id', $period->id)
-                    ->where('status', 'APPROVED')
+                // Ambil details melalui header study_plans
+                $details = StudyPlanDetail::whereHas('studyPlan', function($q) use ($student, $period) {
+                        $q->where('student_id', $student->id)
+                          ->where('academic_period_id', $period->id)
+                          ->where('status', 'approved');
+                    })
+                    ->with('courseClass.course')
                     ->get();
                 
-                $sks = $plans->sum(fn($p) => $p->classroom->course->credit_total);
-                $bobot = $plans->sum(fn($p) => $p->classroom->course->credit_total * $p->grade_point);
+                $sks = $details->sum(fn($d) => $d->courseClass->course->credit_total ?? 0);
+                $bobot = $details->sum(fn($d) => ($d->courseClass->course->credit_total ?? 0) * ($d->grade_point ?? 0));
                 
                 $period->ips = $sks > 0 ? number_format($bobot / $sks, 2) : 0;
                 $period->total_sks = $sks;

@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('courses', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('study_program_id')->constrained()->cascadeOnDelete();
+            $table->char('id', 26)->primary();
+            $table->char('study_program_id', 26);
 
             $table->string('code')->unique(); // TI-101
             $table->string('name'); // Algoritma
@@ -27,6 +27,10 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();
+            $table->foreign('study_program_id')
+                ->references('id')
+                ->on('study_programs')
+                ->onDelete('cascade');
         });
     }
     /**

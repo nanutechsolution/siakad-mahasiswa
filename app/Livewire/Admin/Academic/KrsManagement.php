@@ -2,11 +2,15 @@
 
 namespace App\Livewire\Admin\Academic;
 
+use App\Enums\KrsStatus;
 use Livewire\Component;
 use App\Models\Student;
-use App\Models\Classroom;
+use App\Models\CourseClass;
 use App\Models\StudyPlan;
+use App\Models\StudyPlanDetail;
 use App\Models\AcademicPeriod;
+use Illuminate\Support\Str;
+use App\Traits\WithToast; // Opsional: Pastikan trait ini ada untuk notifikasi
 
 class KrsManagement extends Component
 {
@@ -17,10 +21,12 @@ class KrsManagement extends Component
     // Data Akademik
     public $active_period;
     public $available_classes = [];
-    public $taken_classes = [];
+    public $selected_details = [];
+    public $current_plan = null;
 
     // Filter Kelas
     public $search_class = '';
+    public $total_sks = 0;
 
     public function mount()
     {
@@ -30,88 +36,99 @@ class KrsManagement extends Component
     // 1. Cari & Pilih Mahasiswa
     public function selectStudent($studentId)
     {
-        $this->selectedStudent = Student::with(['user', 'study_program'])->find($studentId);
-        $this->search_student = ''; // Reset search bar
+        $this->selectedStudent = Student::with(['user', 'studyProgram'])->find($studentId);
+        $this->search_student = ''; 
         $this->loadKrsData();
     }
 
     public function resetStudent()
     {
-        $this->selectedStudent = null;
-        $this->available_classes = [];
-        $this->taken_classes = [];
+        $this->reset(['selectedStudent', 'available_classes', 'selected_details', 'current_plan', 'total_sks']);
     }
 
-    // 2. Load Data KRS Mahasiswa Terpilih
+    // 2. Load Data KRS (Header & Detail)
     public function loadKrsData()
     {
         if (!$this->selectedStudent || !$this->active_period) return;
 
-        // Ambil yang sudah diambil
-        $this->taken_classes = StudyPlan::with(['classroom.course', 'classroom.schedules'])
+        // Ambil Header KRS
+        $this->current_plan = StudyPlan::with(['details.courseClass.course', 'details.courseClass.classSchedules'])
             ->where('student_id', $this->selectedStudent->id)
             ->where('academic_period_id', $this->active_period->id)
-            ->get();
+            ->first();
 
-        // Ambil ID kelas yang sudah diambil (untuk exclude)
-        $takenIds = $this->taken_classes->pluck('classroom_id')->toArray();
+        $takenClassIds = [];
+        if ($this->current_plan) {
+            $this->selected_details = $this->current_plan->details;
+            $this->total_sks = $this->selected_details->sum(fn($d) => $d->courseClass->course->credit_total ?? 0);
+            $takenClassIds = $this->selected_details->pluck('course_class_id')->toArray();
+        } else {
+            $this->selected_details = collect();
+            $this->total_sks = 0;
+        }
 
-        // Ambil kelas tersedia (Sesuai Prodi Mahasiswa)
-        $this->available_classes = Classroom::with(['course', 'schedules', 'lecturer.user'])
+        // Ambil Kelas Tersedia (Sesuai Prodi Mahasiswa)
+        $this->available_classes = CourseClass::with(['course', 'classSchedules'])
             ->where('academic_period_id', $this->active_period->id)
+            ->where('is_active', true)
             ->whereHas('course', function ($q) {
-                // Filter Matkul Nama/Kode & Prodi Mahasiswa
                 $q->where('study_program_id', $this->selectedStudent->study_program_id)
-                    ->where(function ($sub) {
-                        $sub->where('name', 'like', '%' . $this->search_class . '%')
-                            ->orWhere('code', 'like', '%' . $this->search_class . '%');
-                    });
+                  ->when($this->search_class, function ($sub) {
+                      $sub->where('name', 'like', '%' . $this->search_class . '%')
+                          ->orWhere('code', 'like', '%' . $this->search_class . '%');
+                  });
             })
-            ->whereNotIn('id', $takenIds)
-            ->take(20) // Limit biar gak berat
+            ->whereNotIn('id', $takenClassIds)
+            ->take(15)
             ->get();
     }
 
-    // 3. Admin Menambahkan Kelas (FORCE ADD)
+    // 3. Admin Menambahkan Kelas (Force Add)
     public function addClass($classId)
     {
-        $class = Classroom::find($classId);
+        if (!$this->selectedStudent) return;
 
-        // Validasi Sederhana (Admin bisa override, tapi kita kasih peringatan dasar)
-        if ($class->enrolled >= $class->quota) {
-            // Opsional: Admin bisa paksa masuk meski penuh? 
-            // Untuk sekarang kita blokir dulu biar aman.
-            session()->flash('error', 'Kelas Penuh!');
-            return;
+        // Buat Header jika belum ada
+        if (!$this->current_plan) {
+            $this->current_plan = StudyPlan::create([
+                'id' => (string) Str::ulid(),
+                'student_id' => $this->selectedStudent->id,
+                'academic_period_id' => $this->active_period->id,
+                'status' => KrsStatus::APPROVED->value, // Admin input langsung Approve
+            ]);
         }
 
-        // Create Study Plan
-        StudyPlan::create([
-            'student_id' => $this->selectedStudent->id,
-            'classroom_id' => $classId,
-            'academic_period_id' => $this->active_period->id,
-            'status' => 'APPROVED', // <--- BEDA DISINI: Admin input langsung Approve
-        ]);
+        // Cek apakah sudah ada di detail (mencegah double entry)
+        $exists = StudyPlanDetail::where('study_plan_id', $this->current_plan->id)
+            ->where('course_class_id', $classId)
+            ->exists();
 
-        $class->increment('enrolled'); // Update kuota
+        if (!$exists) {
+            StudyPlanDetail::create([
+                'id' => (string) Str::ulid(),
+                'study_plan_id' => $this->current_plan->id,
+                'course_class_id' => $classId,
+            ]);
 
-        session()->flash('success', 'Berhasil menambahkan mata kuliah.');
+            CourseClass::find($classId)->increment('enrolled_count');
+            session()->flash('message', 'Mata kuliah berhasil ditambahkan secara paksa.');
+        }
+
         $this->loadKrsData();
     }
 
-    // 4. Admin Menghapus Kelas (FORCE DROP)
-    public function removeClass($planId)
+    // 4. Admin Menghapus Kelas (Force Drop)
+    public function removeClass($detailId)
     {
-        $plan = StudyPlan::find($planId);
-        if ($plan) {
-            $plan->classroom->decrement('enrolled');
-            $plan->delete();
-            session()->flash('success', 'Mata kuliah dihapus.');
+        $detail = StudyPlanDetail::with('courseClass')->find($detailId);
+        if ($detail) {
+            $detail->courseClass->decrement('enrolled_count');
+            $detail->delete();
+            session()->flash('message', 'Mata kuliah berhasil dihapus.');
             $this->loadKrsData();
         }
     }
 
-    // Live Search Listener utk Kelas
     public function updatedSearchClass()
     {
         $this->loadKrsData();
@@ -119,7 +136,6 @@ class KrsManagement extends Component
 
     public function render()
     {
-        // Query Pencarian Mahasiswa (Dropdown)
         $students_result = [];
         if (strlen($this->search_student) > 2) {
             $students_result = Student::with('user')

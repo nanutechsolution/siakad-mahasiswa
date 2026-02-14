@@ -4,44 +4,44 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Course extends Model
 {
     use SoftDeletes;
+    public $incrementing = false;
+    protected $keyType = 'string';
+    protected $guarded = [];
 
-    protected $fillable = [
-        'study_program_id',
-        'code',
-        'name',
-        'name_en',
-        'group_code',
-        'is_mandatory',
-        'semester_default',
-        'credit_total',
-        'credit_theory',
-        'credit_practice',
-        'is_active',
-        'syllabus_path'
-    ];
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::ulid();
+            }
+            if (!empty($model->code)) {
+                $model->code = strtoupper($model->code);
+            }
+        });
 
-    // Relasi: Matkul ini milik Prodi apa?
+        static::updating(function ($model) {
+            if (!empty($model->code)) {
+                $model->code = strtoupper($model->code);
+            }
+        });
+    }
+    // Matkul milik Prodi
     public function study_program()
     {
         return $this->belongsTo(StudyProgram::class);
     }
 
-
-   // Relasi: Mengambil daftar Matkul Prasyarat untuk matkul ini
-    public function prerequisites()
+    /**
+     * Relasi ke tabel curriculum_courses
+     * (1 matkul bisa muncul di banyak kurikulum)
+     */
+    public function curriculumCourses()
     {
-        return $this->belongsToMany(Course::class, 'course_prerequisites', 'course_id', 'prerequisite_id')
-                    ->withPivot('min_grade')
-                    ->withTimestamps();
-    }
-
-    // Relasi Kebalikan: Matkul ini menjadi prasyarat bagi matkul apa saja?
-    public function required_for()
-    {
-        return $this->belongsToMany(Course::class, 'course_prerequisites', 'prerequisite_id', 'course_id');
+        return $this->hasMany(CurriculumCourse::class);
     }
 }

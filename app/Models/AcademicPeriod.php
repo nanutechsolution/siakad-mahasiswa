@@ -3,10 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class AcademicPeriod extends Model
 {
-    // Tambahkan semua kolom ini agar bisa di-update via Settings
+    // Konfigurasi ULID
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    /**
+     * Kolom yang dapat diisi secara massal
+     */
     protected $fillable = [
         'code',
         'name',
@@ -17,7 +25,9 @@ class AcademicPeriod extends Model
         'allow_input_score',
     ];
 
-    // Casting agar tipe datanya otomatis jadi boolean (true/false) saat dipanggil
+    /**
+     * Konversi tipe data otomatis
+     */
     protected $casts = [
         'is_active' => 'boolean',
         'allow_krs' => 'boolean',
@@ -26,13 +36,31 @@ class AcademicPeriod extends Model
         'end_date' => 'date',
     ];
 
-    public function study_plans()
+    /**
+     * Boot logic untuk generate ULID otomatis
+     */
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::ulid();
+            }
+        });
+    }
+
+    /**
+     * Relasi ke Header KRS
+     */
+    public function study_plans(): HasMany
     {
         return $this->hasMany(StudyPlan::class);
     }
 
-    public function classrooms()
+    /**
+     * Relasi ke Kelas Perkuliahan (CourseClass)
+     */
+    public function courseClasses(): HasMany
     {
-        return $this->hasMany(Classroom::class);
+        return $this->hasMany(CourseClass::class);
     }
-}
+}   

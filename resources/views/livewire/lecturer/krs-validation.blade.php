@@ -1,119 +1,149 @@
-<div class="mx-auto max-w-7xl space-y-6">
-    <x-slot name="header">Validasi KRS (Dosen Wali)</x-slot>
+<div class="space-y-6 font-sans">
+    <x-slot name="header">Validasi KRS Bimbingan</x-slot>
 
-    <!-- Header Info -->
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Mahasiswa Bimbingan</h1>
-            <p class="text-slate-500">Daftar mahasiswa yang mengajukan KRS untuk semester ini.</p>
+    <!-- Notifikasi -->
+    @if (session()->has('message'))
+    <div class="p-4 rounded-xl bg-green-100 text-green-700 font-bold border border-green-200 shadow-sm animate-fade-in-down">
+        {{ session('message') }}
+    </div>
+    @endif
+
+    <!-- Toolbar -->
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div class="flex flex-1 w-full gap-2">
+            <div class="relative flex-1">
+                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Nama / NIM Mahasiswa..." class="w-full pl-10 pr-4 py-2 rounded-xl border-slate-200 dark:bg-slate-900 dark:border-slate-700 dark:text-white text-sm focus:ring-brand-blue">
+                <div class="absolute left-3 top-2.5 text-slate-400">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+            <select wire:model.live="filter_status" class="rounded-xl border-slate-200 dark:bg-slate-900 dark:border-slate-700 dark:text-white text-sm focus:ring-brand-blue">
+                <option value="submitted">Menunggu Validasi</option>
+                <option value="approved">Sudah ACC</option>
+                <option value="draft">Konsep / Revisi</option>
+            </select>
         </div>
-        
-        <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Nama / NIM..." class="rounded-lg border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-white w-full md:w-64">
+        <div class="text-right px-4 border-l border-slate-100 dark:border-slate-700 hidden md:block">
+            <p class="text-[10px] uppercase font-black text-slate-400 tracking-widest">Periode Berjalan</p>
+            <p class="text-sm font-bold text-slate-700 dark:text-white">{{ $active_period->name ?? '-' }}</p>
+        </div>
     </div>
 
-    @if (session()->has('message'))
-        <div class="p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg font-bold">
-            ✅ {{ session('message') }}
+    <!-- Tabel Pengajuan KRS -->
+    <div class="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <table class="w-full text-left text-sm whitespace-nowrap">
+            <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 font-bold uppercase text-[10px] tracking-widest border-b border-slate-100 dark:border-slate-700">
+                <tr>
+                    <th class="px-6 py-4">Mahasiswa Bimbingan</th>
+                    <th class="px-6 py-4">SKS</th>
+                    <th class="px-6 py-4 text-center">Status</th>
+                    <th class="px-6 py-4 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-700 font-medium">
+                @forelse($plans as $plan)
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-800 dark:text-white">{{ $plan->student->user->name }}</div>
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{{ $plan->student->nim }} &bull; {{ $plan->student->studyProgram->name ?? '-' }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-bold text-brand-blue text-lg">{{ $plan->details_count ?? $plan->details->sum(fn($d) => $d->courseClass->course->credit_total) }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight
+                            {{ $plan->status->color() === 'green' ? 'bg-green-100 text-green-700' : ($plan->status->color() === 'blue' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600') }}">
+                            {{ $plan->status->label() }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button wire:click="showDetail('{{ $plan->id }}')" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-white rounded-xl text-xs font-bold hover:bg-brand-blue hover:text-white transition shadow-sm">
+                            Periksa KRS
+                        </button>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="4" class="px-6 py-12 text-center text-slate-400 italic">Tidak ada mahasiswa yang mengajukan KRS.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+        <div class="p-4 border-t border-slate-100 dark:border-slate-700">
+            {{ $plans->links() }}
         </div>
-    @endif
+    </div>
 
-    <!-- List Card Mahasiswa -->
-    @if(isset($students) && $students->count() > 0)
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            @foreach($students as $mhs)
-            @php
-                // Cek status mayoritas KRS
-                $status = $mhs->study_plans->first()->status ?? App\Enums\KrsStatus::DRAFT;
-                $totalSks = $mhs->study_plans->sum(fn($p) => $p->classroom->course->credit_total);
-            @endphp
-
-            <div class="group bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-brand-blue transition-all">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold">
-                            {{ substr($mhs->user->name, 0, 1) }}
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-slate-900 dark:text-white leading-tight">{{ $mhs->user->name }}</h3>
-                            <p class="text-xs text-slate-500 font-mono">{{ $mhs->nim }}</p>
-                        </div>
-                    </div>
-                    
-                    @if($status == App\Enums\KrsStatus::APPROVED)
-                        <span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full">ACC</span>
-                    @else
-                        <span class="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-1 rounded-full animate-pulse">BUTUH CEK</span>
-                    @endif
+    <!-- Modal Detail KRS -->
+    @if($isModalOpen && $selectedPlan)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-[2rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-700/50">
+                <div>
+                    <h3 class="text-xl font-bold dark:text-white">Validasi KRS: {{ $selectedPlan->student->user->name }}</h3>
+                    <p class="text-xs text-slate-500 font-medium uppercase tracking-widest mt-0.5">{{ $selectedPlan->student->nim }} &bull; Semester {{ $selectedPlan->student->entry_year }}</p>
                 </div>
-
-                <div class="flex justify-between items-center text-sm text-slate-600 dark:text-slate-400 mb-6">
-                    <span>Total Beban:</span>
-                    <span class="font-bold text-brand-blue dark:text-brand-gold">{{ $totalSks }} SKS</span>
-                </div>
-
-                <button wire:click="showDetail('{{ $mhs->id }}')" class="w-full py-2 rounded-lg bg-slate-900 dark:bg-slate-700 text-white text-sm font-bold hover:bg-brand-blue transition-colors shadow-lg shadow-slate-900/20">
-                    Periksa & Validasi
+                <button wire:click="closeModal" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                 </button>
             </div>
-            @endforeach
-        </div>
-        <div class="mt-4">{{ $students->links() }}</div>
-    @else
-        <div class="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
-            <p class="text-slate-500">Belum ada mahasiswa bimbingan yang mengajukan KRS.</p>
-        </div>
-    @endif
 
-    <!-- MODAL DETAIL -->
-    @if($isModalOpen && $selectedStudent)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            
-            <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                <div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Rencana Studi</h3>
-                    <p class="text-sm text-slate-500">{{ $selectedStudent->user->name }} ({{ $selectedStudent->nim }})</p>
-                </div>
-                <button wire:click="$set('isModalOpen', false)" class="text-slate-400 hover:text-red-500">&times;</button>
-            </div>
-
-            <div class="p-6 overflow-y-auto flex-1">
+            <!-- Body -->
+            <div class="flex-1 overflow-y-auto p-8 space-y-6">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 dark:bg-slate-700 text-slate-500 uppercase text-xs">
+                    <thead class="text-slate-400 font-bold uppercase text-[10px] tracking-widest border-b border-slate-100 dark:border-slate-700">
                         <tr>
-                            <th class="px-4 py-3">Matkul</th>
-                            <th class="px-4 py-3">Kelas</th>
-                            <th class="px-4 py-3 text-center">SKS</th>
+                            <th class="pb-4">Mata Kuliah</th>
+                            <th class="pb-4 text-center">SKS</th>
+                            <th class="pb-4">Kelas & Jadwal</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                        @foreach($studentPlans as $plan)
+                        @foreach($selectedPlan->details as $detail)
                         <tr>
-                            <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">
-                                {{ $plan->classroom->course->name }}
-                                <div class="text-xs text-slate-400">{{ $plan->classroom->course->code }}</div>
+                            <td class="py-4">
+                                <div class="font-bold text-slate-800 dark:text-white">{{ $detail->courseClass->course->name }}</div>
+                                <div class="text-[10px] font-black text-slate-400 uppercase">{{ $detail->courseClass->course->code }}</div>
                             </td>
-                            <td class="px-4 py-3">{{ $plan->classroom->name }}</td>
-                            <td class="px-4 py-3 text-center font-bold">{{ $plan->classroom->course->credit_total }}</td>
+                            <td class="py-4 text-center font-bold text-brand-blue">{{ $detail->courseClass->course->credit_total }}</td>
+                            <td class="py-4 text-xs text-slate-600 dark:text-slate-400">
+                                <div class="font-bold">Kelas {{ $detail->courseClass->name }}</div>
+                                @foreach($detail->courseClass->classSchedules as $sch)
+                                <div>{{ $sch->day_name }}, {{ substr($sch->start_time, 0, 5) }}-{{ substr($sch->end_time, 0, 5) }}</div>
+                                @endforeach
+                            </td>
                         </tr>
                         @endforeach
-                        <tr class="bg-slate-50 dark:bg-slate-900 font-bold">
-                            <td colspan="2" class="px-4 py-3 text-right">TOTAL SKS</td>
-                            <td class="px-4 py-3 text-center text-brand-blue">{{ $studentPlans->sum(fn($p)=>$p->classroom->course->credit_total) }}</td>
-                        </tr>
                     </tbody>
                 </table>
+
+                <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl flex justify-between items-center">
+                    <span class="font-black text-xs uppercase text-slate-400 tracking-widest">Total SKS Diajukan</span>
+                    <span class="text-2xl font-black text-brand-blue">{{ $selectedPlan->details->sum(fn($d) => $d->courseClass->course->credit_total) }} SKS</span>
+                </div>
+
+                @if($selectedPlan->status->value === 'submitted')
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Catatan Revisi (Opsional jika menolak)</label>
+                    <textarea wire:model="rejection_notes" rows="3" class="w-full rounded-2xl border-slate-200 dark:bg-slate-900 dark:border-slate-700 dark:text-white focus:ring-red-500 text-sm" placeholder="Berikan alasan jika KRS ditolak..."></textarea>
+                    @error('rejection_notes') <span class="text-red-500 text-xs font-bold mt-1">{{ $message }}</span> @enderror
+                </div>
+                @endif
             </div>
 
-            <div class="p-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex justify-end gap-3">
-                <button wire:click="reject" wire:confirm="Kembalikan ke Draft? Mahasiswa harus mengajukan ulang." 
-                        class="px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-bold text-sm transition-colors">
-                    Tolak / Revisi
-                </button>
-                <button wire:click="approve" wire:confirm="Setujui Rencana Studi ini?" 
-                        class="px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-bold text-sm shadow-lg shadow-green-500/30 transition-colors">
-                    SETUJUI (ACC)
-                </button>
+            <!-- Footer -->
+            <div class="px-8 py-6 border-t border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-end gap-3 bg-slate-50 dark:bg-slate-700/50">
+                <button wire:click="closeModal" class="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition text-sm">Tutup</button>
+
+                @if($selectedPlan->status->value === 'submitted')
+                <button wire:click="reject" class="px-6 py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition text-sm">Tolak & Revisi</button>
+                <button wire:click="approve" class="px-8 py-2.5 bg-brand-blue text-white rounded-xl font-bold hover:bg-blue-600 shadow-lg shadow-blue-900/20 transition text-sm">Setujui (ACC)</button>
+                @endif
             </div>
         </div>
     </div>

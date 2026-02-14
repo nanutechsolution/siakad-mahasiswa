@@ -10,7 +10,7 @@ use App\Services\NimGeneratorService;
 class NimConfig extends Component
 {
     public $year_format = 'YY';
-    public $seq_digit = 4;
+    public $seq_digit = 3; // Jumlah digit nomor urut
     
     // Array untuk menyimpan kode custom per prodi
     // Format: [ prodi_id => '55', prodi_id => '57' ]
@@ -30,7 +30,7 @@ class NimConfig extends Component
         // Load Config
         if ($config) {
             $this->year_format = $config['year_format'] ?? 'YY';
-            $this->seq_digit = $config['seq_digit'] ?? 4;
+            $this->seq_digit = $config['seq_digit'] ?? 3;
             
             // Load kode yang sudah tersimpan, atau default kosong
             $savedCodes = $config['prodi_codes'] ?? [];

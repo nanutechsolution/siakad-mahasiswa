@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('study_programs', function (Blueprint $table) {
-            $table->id(); // Prodi pakai ID biasa ok
+            $table->char('id', 26)->primary();
+            $table->char('faculty_id', 26)->nullable();
             $table->string('code', 10)->unique();
             $table->string('name');
             $table->enum('degree', ['D3', 'S1', 'S2'])->default('S1');

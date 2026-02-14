@@ -4,12 +4,13 @@ namespace App\Enums;
 
 enum KrsStatus: string
 {
-    case DRAFT = 'DRAFT';
-    case SUBMITTED = 'SUBMITTED';
-    case APPROVED = 'APPROVED';
-    case REJECTED = 'REJECTED';
+    // Gunakan huruf kecil agar sesuai dengan definisi di Migration (database)
+    case DRAFT = 'draft';
+    case SUBMITTED = 'submitted';
+    case APPROVED = 'approved';
+    case REJECTED = 'rejected';
 
-    // Helper untuk teks Bahasa Indonesia (Dipakai di View)
+    // Helper untuk teks Bahasa Indonesia
     public function label(): string
     {
         return match($this) {
@@ -20,14 +21,14 @@ enum KrsStatus: string
         };
     }
 
-    // Helper untuk warna Badge (Dipakai di View)
+    // Helper untuk warna Badge
     public function color(): string
     {
         return match($this) {
-            self::DRAFT => 'gray',      // bg-gray-100
-            self::SUBMITTED => 'yellow', // bg-yellow-100
-            self::APPROVED => 'green',   // bg-green-100
-            self::REJECTED => 'red',     // bg-red-100
+            self::DRAFT => 'slate',
+            self::SUBMITTED => 'blue',
+            self::APPROVED => 'green',
+            self::REJECTED => 'red',
         };
     }
 }

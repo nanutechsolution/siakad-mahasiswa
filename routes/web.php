@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Student\PrintController;
-use App\Livewire\Admin\Finance\BillingIndex;
+use App\Http\Livewire\Admin\Academic\CurriculumCourseIndex;
 use App\Livewire\Admin\Finance\PaymentVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -55,7 +55,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
 
         Route::prefix('academic')->name('academic.')->group(function () {
+            Route::get('/course-groups', \App\Livewire\Admin\Academic\CourseGroupIndex::class)
+                ->name('course-groups.index');
             Route::get('/courses', \App\Livewire\Admin\Academic\CourseIndex::class)->name('courses');
+            Route::get('/curriculum-courses', \App\Livewire\Admin\Academic\CurriculumCourseIndex::class)->name('curriculum-courses.index');
+            Route::get('/curriculum-courses/{curriculum_course}/prerequisites', \App\Livewire\Admin\Academic\CurriculumCoursePrerequisite::class)->name('curriculum-courses.prerequisites');
             Route::get('/classrooms', \App\Livewire\Admin\Academic\ClassroomManager::class)->name('classrooms');
             Route::get('/krs-management', \App\Livewire\Admin\Academic\KrsManagement::class)->name('krs-management');
             Route::get('/krs-validation', \App\Livewire\Admin\Academic\KrsValidate::class)->name('krs-validation');
